@@ -1,8 +1,11 @@
 //const localhost = 'http://172.16.93.107';
 //const wsLocalhost = 'ws://172.16.93.107';
 
-const localhost = 'http://10.204.16.52';
-const wsLocalhost = 'ws://10.204.16.52';
+// const localhost = 'http://10.204.16.52';
+// const wsLocalhost = 'ws://10.204.16.52';
+
+const localhost = '';
+const wsLocalhost = '';
 
 const port = '';
 const nginx_proxy = '/inmfft';

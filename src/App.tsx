@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import { Tooltip } from '@mui/material';
 
@@ -11,6 +12,9 @@ import LoadingCopyToLocalPage from './page/LoadingCopyToLocalPage';
 import LoadingPanelDatasetZipPage from './page/LoadingPanelDatasetZipPage';
 import ProjectPage from './page/ProjectPage';
 import SetAttributePage from './page/SetAttributePage';
+
+import { Provider } from "react-redux";
+import { store } from './redux/store';
 
 import { PageKeyType, ProjectDataType } from './page/type';
 
@@ -77,6 +81,7 @@ function App() {
   }, []);
 
   return (
+    <Provider store={store}>
     <div className="app-container">
       <div className="header">
         <div className="header-text" onClick={() => window.location.reload()}>
@@ -99,6 +104,7 @@ function App() {
       </div>
       <LoadingOverlay show={isLoading} />
     </div>
+    </Provider>
   );
 }
 
