@@ -1,0 +1,29 @@
+import { useState, useImperativeHandle, Ref ,forwardRef} from "react";
+import Select, { Props } from "react-select";
+import { OptionType } from '../../page/type';
+
+type BBBProps = {
+    onChange: (item: OptionType | null) => void;
+    options: OptionType[];
+    className: string;
+    defaultOption?: OptionType;
+};
+
+//forwardRef<any, Props>(
+const BBB=forwardRef<any, Props>((
+    props: BBBProps,
+    ref: Ref<{ getOption: () => OptionType|null }>
+)=> {
+
+    const [item, setItem] = useState<OptionType | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        getOption: () => { return item;}
+    }));
+
+    return (
+        <Select<OptionType, false> options={props.options} className={props.className} onChange={(item) => { props.onChange(item); setItem(item); }} />
+    );
+});
+
+export default BBB;

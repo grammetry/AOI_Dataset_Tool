@@ -1,0 +1,159 @@
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef, ElementRef, ForwardedRef  } from 'react'
+import { extendTheme, CssVarsProvider } from '@mui/joy/styles';
+
+
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+
+
+import Avatar from '@mui/joy/Avatar';
+import ListItemDecorator from '@mui/joy/ListItemDecorator';
+import ListDivider from '@mui/joy/ListDivider';
+import Select from '@mui/joy/Select';
+import Option from '@mui/joy/Option';
+
+
+const CustomSelect = forwardRef<HTMLDivElement,Props>({ dataArr, width, height, fontSize, className, onChange, initPlaceHolder, disabled, name }:
+    {
+        dataArr: string[][],
+        width: number,
+        height: number,
+        fontSize: number,
+        className: string,
+        onChange: (event: React.FormEvent<HTMLInputElement>, value: string) => void,
+        initPlaceHolder: boolean,
+        disabled: boolean,
+        name: string
+    },ref:) => {
+
+    const theme1 = extendTheme({
+        components: {
+            JoySelect: {
+                styleOverrides: {
+                    root: ({ ownerState, theme }) => ({
+                        borderColor: '#979CB580',
+                    }),
+                },
+            },
+
+        },
+    });
+
+    const theme2 = extendTheme({
+        components: {
+            JoySelect: {
+                styleOverrides: {
+                    root: ({ ownerState, theme }) => ({
+                        borderColor: '#979CB5',
+                    }),
+                },
+            },
+
+        },
+    });
+
+    const [placeHolder, setPlaceHolder] = useState(initPlaceHolder);
+    const [selectedValue, setSelectedValue] = useState('');
+    const [focus, setFocus] = useState(false);
+
+
+    const handleSelectChange = (value:string|null) => {
+
+
+        console.log('selected value=',value);
+        // setSelectedValue(value);
+        // onChange(event, value);
+
+    };
+
+    const handleListBoxChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
+
+        //setFocus(event);
+
+    };
+
+    // useImperativeHandle(ref, () => ({
+    //     getSelectedValue: () => {
+    //         // log(`${props.name} get selected value`)
+    //         return selectedValue;
+    //     },
+    //     setSelectedValue: (myValue) => {
+    //         // log(`${props.name} set selected value`)
+    //         // log(myValue)
+    //         setSelectedValue(myValue);
+
+    //     }
+    // }));
+
+
+
+
+    return (
+<div>
+        <CssVarsProvider theme={focus ? theme2 : theme1}>
+            <Select
+                indicator={<KeyboardArrowDown />}
+                // placeholder={placeHolder ? "--- please select ---" : ""}
+                // disabled={disabled}
+              
+
+                // defaultValue={placeHolder ? "" : 'defaultValue'}
+                // value={selectedValue}
+               //onChange={(e)=>handleSelectChange(e)}
+                //onListboxOpenChange={handleListBoxChange.bind(this)}
+                onChange={(e, newValue) => handleSelectChange(newValue)}
+                defaultValue={dataArr[0][0]}
+                slotProps={{
+                    listbox: {
+                    sx: {
+                        '--List-decorator-size': '44px',
+                    },
+                    },
+                }}
+                sx={{
+                    '--List-decorator-size': '44px',
+                    width: width,
+                    height: height,
+                }}
+              
+            >
+
+                {
+                    (dataArr.length === 0) &&
+                    <Option value={-1}
+                        sx={{
+                            fontSize: fontSize,
+                            fontFamily: 'Google Noto Sans TC',
+                            fontWeight: 400,
+                            color: '#979CB599',
+                            backgroundColor: '#FAFAFD!important',
+                            minHeight: height,
+                        }}
+                        disabled
+                    >{(name === 'application') ? "please select model first" : "--- please select ---"}</Option>
+                }
+
+
+                {dataArr.map((item, index) => (
+
+                    <Option value={item[0]} key={index} label={item[1]}
+                        sx={{
+                            fontSize: fontSize,
+                            fontFamily: 'Google Noto Sans TC',
+                            fontWeight: 400,
+                            color: '#16272E',
+                            backgroundColor: '#FAFAFD!important',
+                            minHeight: height,
+                        }}
+
+                    >
+                        {item[1]}
+                    </Option>
+
+                ))}
+            </Select>
+
+        </CssVarsProvider></div>
+    );
+};
+
+export default CustomSelect;

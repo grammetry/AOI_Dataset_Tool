@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import 'bootstrap/dist/css/bootstrap.min.css';
+
 import './App.css';
-import { Tooltip } from '@mui/material';
 
 import { datasetToolProjectAPI } from './APIPath';
 import LoadingOverlay from './components/LoadingOverlay';
-import logo from './image/Dataset_Tool_Logo_white.svg';
+
 import ChooseProductPage from './page/ChooseProductPage';
 import ExportProductPage from './page/ExportProductPage';
 import LoadingCopyToLocalPage from './page/LoadingCopyToLocalPage';
 import LoadingPanelDatasetZipPage from './page/LoadingPanelDatasetZipPage';
 import ProjectPage from './page/ProjectPage';
+import Header from './page/Header';
 import SetAttributePage from './page/SetAttributePage';
+
 
 import { Provider } from "react-redux";
 import { store } from './redux/store';
@@ -51,6 +54,8 @@ function App() {
   const [projectData, setProjectData] = useState<ProjectDataType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+
+
   const fetchProject = useCallback((projectId: string) => {
     setIsLoading(true);
     fetch(datasetToolProjectAPI)
@@ -69,6 +74,8 @@ function App() {
       .finally(() => setIsLoading(false));
   }, []);
 
+
+
   // 禁止使用者使用右鍵
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
@@ -83,17 +90,7 @@ function App() {
   return (
     <Provider store={store}>
     <div className="app-container">
-      <div className="header">
-        <div className="header-text" onClick={() => window.location.reload()}>
-          <Tooltip enterDelay={500} enterNextDelay={500} title="Home" arrow>
-            <div className="flex-row-center">
-              <img src={logo} alt="logo icon" style={{ width: 38, height: 38 }} />
-              {/* <FontAwesomeIcon icon={faScrewdriverWrench} size="sm" color="#fff" /> */}
-              &nbsp;Dataset Tool
-            </div>
-          </Tooltip>
-        </div>
-      </div>
+      <Header/>
       <div className="page-container">
         {pageKey === 'ProjectPage' && <ProjectPage {...{ setPageKey, currentProject, setCurrentProject, projectData, fetchProject }} />}
         {pageKey === 'ChooseProductPage' && <ChooseProductPage {...{ setPageKey, currentProject }} />}

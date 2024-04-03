@@ -1,9 +1,7 @@
 import { Dispatch, FormEventHandler, SetStateAction } from 'react';
 import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
-
 import { theme } from '../page/ProjectPage';
-
 import { AttributeType } from '../page/type';
 
 const useStyles = makeStyles()(() => ({

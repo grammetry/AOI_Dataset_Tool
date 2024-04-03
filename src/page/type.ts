@@ -96,3 +96,25 @@ export type AttributeType = {
   title: string;
   desc: string;
 };
+
+export type ProgressType = {
+  message: string;
+  percent: number;
+};
+
+export type PathListType = {
+  date: string;
+  station:string;
+  model: string;
+
+};
+
+export type FileType = {
+  check_count:number|null;
+  path: string;
+}
+
+export type OptionType = {
+  value: string;
+  label: string;
+};

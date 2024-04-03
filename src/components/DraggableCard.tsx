@@ -1,6 +1,6 @@
 import { MouseEvent, useState } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
-
+import { indexOf } from 'lodash';
 import { datasetImgAPI } from '../APIPath';
 import { openImgInNewTab } from '../utils';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,13 +16,7 @@ const DraggableCard = ({ item, index, isGolden, onHover, onShiftSelect }: { item
 
     const handleClick = (e: MouseEvent, img: string) => {
 
-        console.log('index', index)
-        console.log('item', item)
-        console.log('parent', e.currentTarget.parentNode)
-        console.log('e', (e.currentTarget.parentElement) ? e.currentTarget.parentElement.getAttribute('data-rbd-droppable-id') : '')
-
-
-
+        console.log('image click')
 
         if (e.shiftKey) {
             console.log('shift key down')
@@ -61,31 +55,44 @@ const DraggableCard = ({ item, index, isGolden, onHover, onShiftSelect }: { item
                 {(provided, snapshot) => {
                     if (isGolden) {
                         return (
-                            <div
-                                ref={provided.innerRef}
-                                className={(selectedList.includes(item.image_uuid)) ? "drag-item-golden-selected" : "drag-item-golden"}
-                                onClick={(e) => handleClick(e, item.image_uuid)}
-                                onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}
-                                onMouseLeave={(e) => handleMouseLeave(e, item.image_uuid)}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                            >
-                                <img src={datasetImgAPI(item.image_uuid, 256)} alt="img" />
+                            
+
+                            <div style={{ position: 'relative' }} className={(selectedList.includes(item.image_uuid)) ? "drag-item-golden-selected" : "drag-item-golden"}  onClick={(e) => handleClick(e, item.image_uuid)}>
+                                <div
+                                    ref={provided.innerRef}
+                                    className="my-image-gold-item"
+                                    style={{ position: 'absolute',top:'4px',left:'4px'}}     
+                                    onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}
+                                    onMouseLeave={(e) => handleMouseLeave(e, item.image_uuid)}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                >
+                                    <img src={datasetImgAPI(item.image_uuid, 60)} alt="img" />
+                                </div>
+                                {
+                                    (indexOf(selectedList, item.image_uuid) >= 0) &&
+                                    <div className="my-selected-index-tag d-flex align-items-center justify-content-center">{indexOf(selectedList, item.image_uuid) + 1}</div>
+                                }
                             </div>
                         );
                     } else {
                         return (
-                            <div
-                                ref={provided.innerRef}
-                                className={(selectedList.includes(item.image_uuid)) ? "drag-item-selected" : "drag-item"}
-                                style={{ backgroundColor: 'red' }}
-                                onClick={(e) => handleClick(e, item.image_uuid)}
-                                onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}
-                                onMouseLeave={(e) => handleMouseLeave(e, item.image_uuid)}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                            >
-                                <img src={datasetImgAPI(item.image_uuid, 60)} alt="img" />
+                            <div style={{ position: 'relative' }} className={(selectedList.includes(item.image_uuid)) ? "drag-item-selected" : "drag-item"}  onClick={(e) => handleClick(e, item.image_uuid)}>
+                                <div
+                                    ref={provided.innerRef}
+                                    className="my-image-item"
+                                    style={{ position: 'absolute',top:'4px',left:'4px'}}     
+                                    onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}
+                                    onMouseLeave={(e) => handleMouseLeave(e, item.image_uuid)}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                >
+                                    <img src={datasetImgAPI(item.image_uuid, 60)} alt="img" />
+                                </div>
+                                {
+                                    (indexOf(selectedList, item.image_uuid) >= 0) &&
+                                    <div className="my-selected-index-tag d-flex align-items-center justify-content-center">{indexOf(selectedList, item.image_uuid) + 1}</div>
+                                }
                             </div>
                         );
                     }

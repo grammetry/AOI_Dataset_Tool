@@ -1,0 +1,40 @@
+import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
+import CustomSelect, { Props }  from 'react-select';
+
+// 定義 React Select 的參考介面
+export interface SelectRef {
+  focus: () => void;
+}
+
+const Select = forwardRef<any, Props>((props, ref) => (
+  <CustomSelect ref={ref} {...props} />
+));
+
+// 使用 forwardRef 包裝組件，使其可以接收 ref
+const ReactSelect = forwardRef<any, Props>((props, ref) => {
+
+  const selectRef = useRef<SelectRef>(null);
+
+  // 使用 useImperativeHandle 定義外部可訪問的方法
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (selectRef.current) {
+        selectRef.current.focus();
+      }
+    }
+  }));
+
+  useEffect(() => {
+    // 在這裡設置參考
+    console.log(selectRef.current);
+  }, []);
+
+  return (
+    <Select
+      ref={selectRef}
+      {...props}
+    />
+  );
+});
+
+export default ReactSelect;

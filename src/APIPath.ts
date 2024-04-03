@@ -1,6 +1,9 @@
 //const localhost = 'http://172.16.93.107';
 //const wsLocalhost = 'ws://172.16.93.107';
 
+// const localhost = 'http://172.16.92.102';
+// const wsLocalhost = 'ws://172.16.92.102';
+
 // const localhost = 'http://10.204.16.52';
 // const wsLocalhost = 'ws://10.204.16.52';
 
@@ -23,7 +26,7 @@ export const projectCoverAPI = (project_uuid: string, image_max_length?: number)
 
 // ChooseProductPage
 export const dataSourceAPI = (dataPath?: string) =>
-  `${localhost}${port}${nginx_proxy}${dataConvert_server}${restfulv1}/dataSource?boardSnCountFilter=2${
+  `${localhost}${port}${nginx_proxy}${dataConvert_server}${restfulv1}/dataSource?boardSnCountFilter=0${
     dataPath ? '&dataPath=' + dataPath : ''
   }`;
 

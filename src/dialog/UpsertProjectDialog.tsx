@@ -1,6 +1,9 @@
 import { Dispatch, FormEventHandler, SetStateAction } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
+
+import { setMessage, setShow } from '../redux/store/slice/currentMessage';
 
 import { datasetToolProjectAPI } from '../APIPath';
 import Required from '../components/Required';
@@ -33,6 +36,9 @@ const UpsertProjectDialog = (props: UpsertProjectDialogProps) => {
   const { openUpsertDialog, setOpenUpsertDialog, fetchProject, currentProject, setIsLoading } = props;
   const { classes, cx } = useStyles();
 
+
+  const dispatch=useDispatch();
+
   const handleSubmit: FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -40,8 +46,17 @@ const UpsertProjectDialog = (props: UpsertProjectDialogProps) => {
       project_uuid: currentProject?.project_uuid || '',
       project_name: (formData.get('name') as string).trim(),
       annotation: (formData.get('note') as string).trim() || null,
+      //annotation: (formData.get('note') as string).replace(/[&\/\#, +()~%.'":@^*?<>{}]/g, '').trim() || null,
     };
-    if (!postData.project_name) return alert('Please input the project name.');
+    //if (!postData.project_name) return alert('Please input the project name.');
+
+
+    if (!postData.project_name){
+      dispatch(setShow(true));
+      dispatch(setMessage('Please input the project name.'));
+      return;
+    } 
+
     setIsLoading(true);
 
     fetch(datasetToolProjectAPI, {
@@ -57,16 +72,22 @@ const UpsertProjectDialog = (props: UpsertProjectDialogProps) => {
             throw { error: 'API request failed', response: data };
           });
         } else {
+          setOpenUpsertDialog('');
           return fetchProject(currentProject?.project_uuid || '');
         }
+
       })
       .catch((err) => {
         const msg = err?.response?.detail?.[0]?.msg || '';
         const loc = err?.response?.detail?.[0]?.loc || [];
-        console.log(`API error: ${msg} [${loc.join(', ')}]`);
+        //console.log(`API error: ${msg} [${loc.join(', ')}]`);
+        //alert('api error')
+        dispatch(setShow(true));
+        dispatch(setMessage(msg));
+        
       })
       .finally(() => {
-        setOpenUpsertDialog('');
+        //
         setIsLoading(false);
       });
   };
@@ -78,51 +99,54 @@ const UpsertProjectDialog = (props: UpsertProjectDialogProps) => {
   if (!openUpsertDialog) return <></>;
 
   return (
-    <ThemeProvider theme={theme}>
-      <Dialog open={!!openUpsertDialog} className={cx(classes.customDialog)} onClose={handleClose}>
-        <div className="dialog-container">
-          <div className="title-style">{currentProject?.project_uuid ? 'Edit Project' : 'Add Project'}</div>
-          <form onSubmit={handleSubmit}>
-            <div className="dialog-content">
-              <div style={{ marginBottom: '10px' }}>
-                <div className="input-name">
-                  Project name
-                  <Required />
+    <>
+      
+      <ThemeProvider theme={theme}>
+        <Dialog open={!!openUpsertDialog} className={cx(classes.customDialog)} onClose={handleClose}>
+          <div className="dialog-container">
+            <div className="title-style">{currentProject?.project_uuid ? 'Edit Project' : 'Add Project'}</div>
+            <form onSubmit={handleSubmit}>
+              <div className="dialog-content">
+                <div style={{ marginBottom: '10px' }}>
+                  <div className="input-name">
+                    Project name
+                    <Required />
+                  </div>
+                  <input name="name" defaultValue={currentProject?.project_name || ''} />
                 </div>
-                <input name="name" defaultValue={currentProject?.project_name || ''} />
+                <div className="input-name">Note</div>
+                <textarea name="note" defaultValue={currentProject?.annotation || ''} />
               </div>
-              <div className="input-name">Note</div>
-              <textarea name="note" defaultValue={currentProject?.annotation || ''} />
-            </div>
-            <div className="lower-right-button-container">
-              <Button
-                variant="outlined"
-                className="enlarge-button"
-                sx={{
-                  width: 100,
-                  fontSize: 16,
-                  padding: '2px 6px',
-                  textTransform: 'none',
-                  boxShadow: '0px 2px 2px 0px #00000010',
-                  transition: 'transform 0.2s',
-                }}
-                onClick={() => setOpenUpsertDialog('')}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                className="enlarge-button"
-                sx={{ width: 100, fontSize: 16, padding: '2px 6px', textTransform: 'none', transition: 'transform 0.2s' }}
-              >
-                Save
-              </Button>
-            </div>
-          </form>
-        </div>
-      </Dialog>
-    </ThemeProvider>
+              <div className="lower-right-button-container">
+                <Button
+                  variant="outlined"
+                  className="enlarge-button"
+                  sx={{
+                    width: 100,
+                    fontSize: 16,
+                    padding: '2px 6px',
+                    textTransform: 'none',
+                    boxShadow: '0px 2px 2px 0px #00000010',
+                    transition: 'transform 0.2s',
+                  }}
+                  onClick={() => setOpenUpsertDialog('')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  className="enlarge-button"
+                  sx={{ width: 100, fontSize: 16, padding: '2px 6px', textTransform: 'none', transition: 'transform 0.2s' }}
+                >
+                  Save
+                </Button>
+              </div>
+            </form>
+          </div>
+        </Dialog>
+      </ThemeProvider>
+    </>
   );
 };
 
