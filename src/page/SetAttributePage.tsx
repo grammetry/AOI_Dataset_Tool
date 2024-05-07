@@ -31,6 +31,7 @@ import LoadingOverlay from '../components/LoadingOverlay';
 
 import ConfirmDialog from '../dialog/ConfirmDialog';
 import RatioDialog from '../dialog/RatioDialog';
+import TrainingDialog from '../dialog/TrainingDialog';
 import WarningDialog from '../dialog/WarningDialog';
 import { theme } from './ProjectPage';
 import { datasetImgAPI } from '../APIPath';
@@ -67,6 +68,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
     const [openConfirmLeaveDialog, setOpenConfirmLeaveDialog] = useState(false);
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [openRatioDialog, setOpenRatioDialog] = useState(false);
+    const [openTrainingDialog, setOpenTrainingDialog] = useState(false);
     const [openWarningDialog, setOpenWarningDialog] = useState(false);
     const [panelInfo, setPanelInfo] = useState<PanelInfoType>();
     const [panelDataset, setPanelDataset] = useState<Record<string, Record<string, PanelDatasetType>>>();
@@ -359,6 +361,8 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
 
     const handleKeyDown = (keyName: any, e: any) => {
 
+        //console.log('e.code', e.code);
+
         if (e.code === 'PageUp') {
             if (((selectedArea > 0) && (selectedArea < 5)) || (selectedArea === 6)) {
 
@@ -414,6 +418,11 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
             if (hoverItem !== '') {
                 if (show === false) setShow(true);
             }
+        }
+
+        if (e.code === 'Escape') {
+            dispatch(setToggleArea(0));
+            dispatch(setSelectedList([]));
         }
 
         if (e.code === 'ArrowUp') {
@@ -705,6 +714,18 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
             });
     };
 
+    const OpenTrainingDialog = (projectId: string, exportId: string | null) => {
+        if (!exportId) return;
+        const postData = {
+            project_uuid: projectId,
+            export_uuid: exportId,
+        };
+
+        setOpenTrainingDialog(true);
+
+        
+    };
+
 
     useEffect(() => {
 
@@ -760,7 +781,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
     return (
         <>
             <Hotkeys
-                keyName="Space,Up,Down,Right,Left,Shift,PageUp,PageDown"
+                keyName="Space,Up,Down,Right,Left,Shift,PageUp,PageDown,Esc"
                 onKeyDown={handleKeyDown.bind(this)}
                 onKeyUp={handleKeyUp.bind(this)}
                 disabled={false}
@@ -805,6 +826,16 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                             >
                                 Convert
                             </Button>
+
+                            {/* <Button
+                                variant="contained"
+                                className="enlarge-button"
+                                sx={{ width: 160, fontSize: 16, textTransform: 'none', transition: 'transform 0.2s' }}
+                                onClick={() => OpenTrainingDialog(currentProject.project_uuid, currentProject.export_uuid)}
+                                disabled={false}
+                            >  
+                                Train
+                            </Button> */}
                         </div>
                     </div>
                     <div className="attribute-page-content">
@@ -826,7 +857,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                         setSelectComp(comp);
                                                         setSelectLight('');
                                                         setPanelDatasetSecond(panelDataset[comp]);
-                                                        dispatch(setPanelDatasetThird(undefined));
+                                                        //dispatch(setPanelDatasetThird(undefined));
                                                         dispatch(setClearList());
 
                                                         setTempComp(comp);
@@ -953,7 +984,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                 )}
                             </div>
                             <DragDropContext onDragEnd={onDragEnd}>
-                                {panelDatasetThird && (
+                                    {panelDatasetThird && (                          
                                     <div className="attribute-content">
                                         <div className="train-val-container">
                                             <div className="train-val-wrapper">
@@ -966,7 +997,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                         <div className={trainNum < 2 ? 'pass-ng-wrapper-warn' : 'pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(1))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(1) }} style={{ backgroundColor: (selectedArea === 1) ? '#D9FFFF' : '#FFFFFF' }}>
                                                             <div className="pass-ng-title" ref={passPanelRef}>PASS ({panelDatasetThird.train.PASS.length})</div>
 
-                                                            <Droppable droppableId="train_PASS">
+                                                            <Droppable droppableId={"train_PASS"}>
                                                                 {(provided) => (
                                                                     <div ref={provided.innerRef} {...provided.droppableProps} className="img-container" >
                                                                         {panelDatasetThird?.train?.PASS &&
@@ -1163,6 +1194,21 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                             adjustRatio,
                         }}
                     />
+                    <TrainingDialog
+                        {...{
+                            openTrainingDialog,
+                            setOpenTrainingDialog,
+                            trainPass,
+                            setTrainPass,
+                            trainNg,
+                            setTrainNg,
+                            valPass,
+                            setValPass,
+                            valNg,
+                            setValNg,
+                            adjustRatio,
+                        }}
+                    /> 
                     <WarningDialog
                         openWarningDialog={openWarningDialog}
                         setOpenWarningDialog={setOpenWarningDialog}

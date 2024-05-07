@@ -28,9 +28,7 @@ export const currentDataset = createSlice({
     reducers: {
         setPanelDatasetThird: (state, action) => {
             state.dataset = action.payload;
-        },
-       
-       
+        }, 
     },
 });
 

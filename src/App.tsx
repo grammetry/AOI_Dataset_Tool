@@ -58,6 +58,10 @@ function App() {
 
   const fetchProject = useCallback((projectId: string) => {
     setIsLoading(true);
+
+    console.log('datasetToolProjectAPI')
+    console.log(datasetToolProjectAPI)
+
     fetch(datasetToolProjectAPI)
       .then((res) => res.json())
       .then((data) => {
@@ -70,6 +74,7 @@ function App() {
         const msg = err?.response?.detail?.[0]?.msg || '';
         const loc = err?.response?.detail?.[0]?.loc || [];
         console.log(`API error: ${msg} [${loc.join(', ')}]`);
+        console.log(err)
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -94,7 +99,7 @@ function App() {
       <div className="page-container">
         {pageKey === 'ProjectPage' && <ProjectPage {...{ setPageKey, currentProject, setCurrentProject, projectData, fetchProject }} />}
         {pageKey === 'ChooseProductPage' && <ChooseProductPage {...{ setPageKey, currentProject }} />}
-        {pageKey === 'LoadingCopyToLocalPage' && <LoadingCopyToLocalPage {...{ setPageKey, currentProject }} />}
+        {pageKey === 'LoadingCopyToLocalPage' && <LoadingCopyToLocalPage {...{ setPageKey, currentProject , fetchProject}} />}
         {pageKey === 'ExportProductPage' && <ExportProductPage {...{ setPageKey, currentProject, fetchProject }} />}
         {pageKey === 'SetAttributePage' && <SetAttributePage {...{ setPageKey, currentProject }} />}
         {pageKey === 'LoadingPanelDatasetZipPage' && <LoadingPanelDatasetZipPage {...{ setPageKey, currentProject }} />}

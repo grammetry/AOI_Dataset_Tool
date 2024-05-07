@@ -12,8 +12,7 @@ import Checkbox from '@mui/joy/Checkbox';
 import { CssVarsProvider } from '@mui/joy/styles';
 import Input from '@mui/joy/Input';
 import ListItemDecorator from '@mui/joy/ListItemDecorator';
-import Filter1Icon from '@mui/icons-material/Filter1';
-import Filter2Icon from '@mui/icons-material/Filter2';
+import DatasetIcon from '@mui/icons-material/Dataset';
 import LooksOneTwoToneIcon from '@mui/icons-material/LooksOneTwoTone';
 import LooksTwoTwoToneIcon from '@mui/icons-material/LooksTwoTwoTone';
 import DatePicker from "react-datepicker";
@@ -84,11 +83,11 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
 
     const [modelOption, setModelOption] = useState<OptionType[]>([{ value: '', label: '' }]);
 
-    // const [fromDate, setFromDate] = useState<string>(moment().format("YYYY-MM-DD"));
-    // const [toDate, setToDate] = useState<string>(moment().format("YYYY-MM-DD"));
+    const [fromDate, setFromDate] = useState<string>(moment().format("YYYY-MM-DD"));
+    const [toDate, setToDate] = useState<string>(moment().format("YYYY-MM-DD"));
 
-    const [fromDate, setFromDate] = useState<string>('2023-06-01');
-    const [toDate, setToDate] = useState<string>('2023-06-10');
+    // const [fromDate, setFromDate] = useState<string>('2023-06-01');
+    // const [toDate, setToDate] = useState<string>('2023-06-10');
 
     const [modelName, setModelName] = useState<string>('4DM24DK');
 
@@ -807,7 +806,7 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                 </Tooltip>
                             </span>
                             <div className="lower-right-button-container">
-                                <Button
+                                {/* <Button
                                     variant="outlined"
                                     className="enlarge-button"
                                     sx={{
@@ -820,7 +819,7 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                     onClick={() => setPageKey('ExportProductPage')}
                                 >
                                     Skip
-                                </Button>
+                                </Button> */}
                                 <Button
                                     variant="contained"
                                     className="enlarge-button"
@@ -845,32 +844,27 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                     <TabList >
                                         <Tab>
                                             <ListItemDecorator>
-                                                <LooksOneTwoToneIcon
+                                                <DatasetIcon
                                                     sx={{
                                                         color: '#ed1b23',
                                                         fontSize: '30px'
                                                     }} />
                                             </ListItemDecorator>
-                                            <div className='my-tag'>Search by month</div>
+                                            <div className='my-tag'>Search by model</div>
                                         </Tab>
                                         <Tab>
                                             <ListItemDecorator>
-                                                <LooksTwoTwoToneIcon sx={{
+                                                <DatasetIcon sx={{
                                                     color: '#ed1b23',
                                                     fontSize: '30px'
                                                 }} />
                                             </ListItemDecorator>
-                                            <div className='my-tag'>Search by model</div>
+                                            <div className='my-tag'>Search by month</div>
 
                                         </Tab>
                                     </TabList>
+                                    
                                     <TabPanel value={0}>
-                                        <div className="d-flex flex-row mt-2 gap-2">
-                                            <MonthSelector options={monthOption} onChange={(item: OptionType | null) => { console.log(item); fetchDataMonth(item);setMonthSelectedOption(item); }} className="my-month-select" ref={monthSelectorRef} />
-                                            <ModelSelector options={modelOption} onChange={(item: OptionType | null) => { console.log(item); setDataSearch(item); }} className="my-model-select" ref={modelSelectorRef} />
-                                        </div>
-                                    </TabPanel>
-                                    <TabPanel value={1}>
                                         <div className="d-flex flex-row mt-2 gap-2">
                                            
                                             <DatePicker  
@@ -904,6 +898,12 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                             >Search</JoyButton>
                                         </div>
 
+                                    </TabPanel>
+                                    <TabPanel value={1}>
+                                        <div className="d-flex flex-row mt-2 gap-2">
+                                            <MonthSelector options={monthOption} onChange={(item: OptionType | null) => { console.log(item); fetchDataMonth(item);setMonthSelectedOption(item); }} className="my-month-select" ref={monthSelectorRef} />
+                                            <ModelSelector options={modelOption} onChange={(item: OptionType | null) => { console.log(item); setDataSearch(item); }} className="my-model-select" ref={modelSelectorRef} />
+                                        </div>
                                     </TabPanel>
                                 </Tabs>
                             </CssVarsProvider>

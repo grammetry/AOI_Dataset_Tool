@@ -107,6 +107,14 @@ input[type="checkbox"]:checked {
     justify-content: center;
 }
 
+.flex-column-left {
+    display: flex;
+    flex-direction: column;
+    align-items: top;
+    justify-content: left;
+}
+
+
 .flex-row-center {
     display: flex;
     flex-direction: row;
@@ -1194,7 +1202,9 @@ input[type="checkbox"]:checked {
     font-family: 'Google Noto Sans TC';
 }
 
-
+.my-train-method-select{
+    width:420px;
+}
 
 .my-month-select{
     width:150px;
@@ -1235,3 +1245,52 @@ input[type="checkbox"]:checked {
     font-size: 18px;
     margin-left: 8px;
 }
+
+.my-train-parameter {
+    @extend .flex-column-left;
+    flex: 1;
+}
+
+.my-train-parameter-container {
+    @extend .flex-row;
+    text-align: center;
+    gap: 6px;
+    background-color: #FFFFFF;
+    margin-top:20px;
+}
+
+.my-train-parameter-container-left {
+    @extend .flex-column;
+    flex: 1;
+    height: 300px;
+    padding: 6px 12px 30px 0px;
+    box-sizing: border-box;
+}
+
+.my-train-parameter-container-right {
+    @extend .flex-column;
+    flex: 1;
+    height: 300px;
+    padding: 6px 0px 30px 12px;
+    box-sizing: border-box;
+}
+
+.my-parameter-input{
+    height: 36px!important;
+    padding: 0 6px;
+    margin-right: 6px;
+    //color: #444444;
+    font-size: 16px;
+    box-sizing: border-box; 
+    border:red;
+}
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+} 
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+} 

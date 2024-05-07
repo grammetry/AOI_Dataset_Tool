@@ -4,11 +4,17 @@
 // const localhost = 'http://172.16.92.102';
 // const wsLocalhost = 'ws://172.16.92.102';
 
-// const localhost = 'http://10.204.16.52';
-// const wsLocalhost = 'ws://10.204.16.52';
+const localhost = 'http://10.204.16.110:8080';
+const wsLocalhost = 'ws://10.204.16.110:8080';
 
-const localhost = '';
-const wsLocalhost = '';
+//const localhost = `http://${window.location.host}`;
+//const wsLocalhost = `ws://${window.location.host}`;
+
+//const localhost = 'http://10.204.16.110';
+//const wsLocalhost = 'ws://127.0.0.1:3001/socket';
+
+//const localhost = '';
+//const wsLocalhost = '';
 
 const port = '';
 const nginx_proxy = '/inmfft';

@@ -1,8 +1,8 @@
-import { Dispatch, SetStateAction, useEffect, useMemo } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo,useState } from 'react';
 import { Box, LinearProgress, ThemeProvider } from '@mui/material';
 import useWebSocket from 'react-use-websocket';
 
-import { copyToLocalWs } from '../APIPath';
+import { copyToLocalWs,panelSourceExportAPI } from '../APIPath';
 import { theme } from './ProjectPage';
 
 import { PageKeyType, ProjectDataType } from './type';
@@ -10,12 +10,19 @@ import { PageKeyType, ProjectDataType } from './type';
 type LoadingCopyToLocalPageProps = {
   currentProject: ProjectDataType;
   setPageKey: Dispatch<SetStateAction<PageKeyType>>;
+  fetchProject: (projectId: string) => void;
 };
 
 const LoadingCopyToLocalPage = (props: LoadingCopyToLocalPageProps) => {
-  const { currentProject, setPageKey } = props;
 
-  const { lastMessage } = useWebSocket(copyToLocalWs(currentProject.project_uuid));
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { currentProject, setPageKey ,fetchProject } = props;
+
+  const wsUrl = copyToLocalWs(currentProject.project_uuid);
+
+  const { lastMessage } = useWebSocket(wsUrl);
 
   const progress = useMemo(() => {
     if (!lastMessage?.data) return 0;
@@ -29,8 +36,54 @@ const LoadingCopyToLocalPage = (props: LoadingCopyToLocalPageProps) => {
   useEffect(() => {
     if (!lastMessage?.data) return;
     const json = JSON.parse(lastMessage?.data);
-    if (json.status === 'finish') setPageKey('ExportProductPage');
+    if (json.status === 'finish'){
+      //setPageKey('ExportProductPage');
+      setIsLoading(true);
+
+      fetch(panelSourceExportAPI, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dataset_uuid: currentProject.dataset_uuid }),
+      })
+        .then(() => {
+          fetchProject(currentProject?.project_uuid || '');
+          setPageKey('SetAttributePage');
+        })
+        .catch((err) => {
+          const msg = err?.response?.detail?.[0]?.msg || '';
+          const loc = err?.response?.detail?.[0]?.loc || [];
+          console.log(`API error: ${msg} [${loc.join(', ')}]`);
+        })
+        .finally(() => setIsLoading(false));
+
+
+
+    } 
   }, [lastMessage?.data, setPageKey]);
+
+  useEffect(() => {
+
+    console.log('copyToLocalWs(currentProject.project_uuid)')
+    console.log(copyToLocalWs(currentProject.project_uuid))
+
+    const url = copyToLocalWs(currentProject.project_uuid);
+
+    var ws = new WebSocket(url)
+    // 監聽連線狀態
+    ws.onopen = () => {
+      console.log('open connection')
+    }
+    ws.onclose = () => {
+      console.log('close connection');
+    }
+    //接收 Server 發送的訊息
+    ws.onmessage = event => {
+      console.log('Server:', event.data);
+    }
+    
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>

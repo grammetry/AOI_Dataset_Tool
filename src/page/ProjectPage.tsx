@@ -3,6 +3,7 @@ import './page.scss';
 import { faCheckToSlot, faEllipsis, faFileCircleCheck, faFolderPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Button, createTheme, Menu, MenuItem, ThemeProvider, Tooltip } from '@mui/material';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
 import { datasetToolProjectAPI, downloadDatasetAPI, projectCoverAPI } from '../APIPath';
 import { initialProjectState } from '../App';
@@ -85,6 +86,10 @@ const ProjectPage = (props: ProjectPageProps) => {
   };
 
   const handleConfirm: FormEventHandler<HTMLFormElement> = (e) => {
+
+    console.log('--- url ---')
+    console.log(datasetToolProjectAPI)
+
     e.preventDefault();
     setIsLoading(true);
     const postData = {
@@ -110,6 +115,7 @@ const ProjectPage = (props: ProjectPageProps) => {
         const msg = err?.response?.detail?.[0]?.msg || '';
         const loc = err?.response?.detail?.[0]?.loc || [];
         console.log(`API error: ${msg} [${loc.join(', ')}]`);
+        console.log(err)
       })
       .finally(() => {
         setOpenConfirmDialog(false);
@@ -145,9 +151,16 @@ const ProjectPage = (props: ProjectPageProps) => {
       <div className="container">
         <div className="title-container first-title-container">
           <div className="title-style">Project Page</div>
-          <div onClick={handleClickAddBtn}>
+          <div onClick={handleClickAddBtn} style={{cursor:'pointer'}}>
             <Tooltip enterDelay={500} enterNextDelay={500} title="Add project." arrow>
-              <FontAwesomeIcon className="icon-button" icon={faFolderPlus} size="2xl" color="#ed1b23" />
+              {/* <FontAwesomeIcon className="icon-button" icon={faFolderPlus} size="10x" color="#ed1b23" /> */}
+              <CreateNewFolderIcon sx={{
+                  color: '#ed1b23',
+                  fontSize: '40px',
+                  '&:hover': {
+                    color: '#A51218'
+                  }
+              }} />
             </Tooltip>
           </div>
         </div>
