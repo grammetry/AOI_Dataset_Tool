@@ -1,4 +1,4 @@
-import React, { useImperativeHandle, forwardRef, useRef, useState } from 'react';
+import React, { useImperativeHandle, forwardRef, useRef, useState, useEffect } from 'react';
 import Select from "react-select";
 import { OptionType } from '../../page/type';
 
@@ -6,7 +6,7 @@ type Props = {
     onChange: (item: OptionType | null) => void;
     options: OptionType[];
     className: string;
-    defaultOption?: OptionType;
+    defaultOption?: OptionType|null;
 };
 
 export interface TrainMethodSelectorRef {
@@ -16,8 +16,9 @@ export interface TrainMethodSelectorRef {
 
 const TrainMethodSelector = forwardRef<TrainMethodSelectorRef, Props>(function TrainMethodSelector(props: Props, ref) {
 
-    const [currentItem, setCurrentItem] = useState<OptionType | null>(null);
+    const [currentItem, setCurrentItem] = useState<OptionType | null>(props.defaultOption || null);
 
+   
     useImperativeHandle(ref, () => {
         return {
             setValue(value: OptionType | null) {

@@ -827,7 +827,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                 Convert
                             </Button>
 
-                            {/* <Button
+                            <Button
                                 variant="contained"
                                 className="enlarge-button"
                                 sx={{ width: 160, fontSize: 16, textTransform: 'none', transition: 'transform 0.2s' }}
@@ -835,7 +835,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                 disabled={false}
                             >  
                                 Train
-                            </Button> */}
+                            </Button>
                         </div>
                     </div>
                     <div className="attribute-page-content">
@@ -1198,15 +1198,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                         {...{
                             openTrainingDialog,
                             setOpenTrainingDialog,
-                            trainPass,
-                            setTrainPass,
-                            trainNg,
-                            setTrainNg,
-                            valPass,
-                            setValPass,
-                            valNg,
-                            setValNg,
-                            adjustRatio,
+                            setPageKey,
                         }}
                     /> 
                     <WarningDialog

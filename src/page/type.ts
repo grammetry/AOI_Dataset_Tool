@@ -5,6 +5,7 @@ export type PageKeyType =
   | 'ExportProductPage'
   | 'SetAttributePage'
   | 'LoadingPanelDatasetZipPage'
+  | 'TrainPage'
   | '';
 
 export type ProjectStatusType = {
@@ -118,3 +119,20 @@ export type OptionType = {
   value: string;
   label: string;
 };
+
+export type WorkspaceType = {
+  project_uuid: string|null;
+  dataset_uuid: string|null;
+  export_uuid:string|null;
+  tao_model_name:string|null;
+
+};
+
+export type TaoQuickTrainType={
+  tao_model_uuid:string;
+  file:File|null;
+}
+
+export type TaoStartTrainType={
+  tao_model_uuid:string;
+}

@@ -4,8 +4,22 @@
 // const localhost = 'http://172.16.92.102';
 // const wsLocalhost = 'ws://172.16.92.102';
 
-const localhost = 'http://10.204.16.110:8080';
-const wsLocalhost = 'ws://10.204.16.110:8080';
+// const localhost = 'http://10.204.16.110:8080';
+// const wsLocalhost = 'ws://10.204.16.110:8080';
+
+// judy host
+const localhost = 'http://172.16.92.130:8080';
+const wsLocalhost = 'ws://172.16.92.130:8080';
+
+
+//const localhost = 'http://127.0.0.1';
+//const wsLocalhost = 'ws://127.0.0.1';
+
+
+// manny host
+//const localhost = 'http://172.16.92.102:8080';
+//const wsLocalhost = 'ws://172.16.92.102:8080';
+
 
 //const localhost = `http://${window.location.host}`;
 //const wsLocalhost = `ws://${window.location.host}`;
@@ -21,6 +35,8 @@ const nginx_proxy = '/inmfft';
 const apiv1 = '/api/v1';
 const dataConvert_server = '/dataConvert';
 const restfulv1 = '/rest/v1';
+
+const trainv1 = 'v1';
 
 // ProjectPage
 export const datasetToolProjectAPI = `${localhost}${port}${nginx_proxy}${apiv1}/datasetToolProject`;
@@ -80,3 +96,11 @@ export const downloadDatasetAPI = (export_uuid: string) =>
 
 export const generateZipWs = (project_uuid: string) =>
   `${wsLocalhost}${port}${nginx_proxy}${apiv1}/projectStatus/generateZip?project_uuid=${project_uuid}`;
+
+export const taoWorkspaceAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace`;
+
+export const taoQuickTrainAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/info`;
+
+export const taoStartTrainAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train`;
+
+export const taoTrainStatusWS = `${wsLocalhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train/container`; 
