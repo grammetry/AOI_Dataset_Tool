@@ -1,9 +1,14 @@
 import React from 'react';
 import log from "../../utils/console";
 
-const StatusButton = ({ name }) => {
+const StatusButton = ({ name,onClick }) => {
 
     // const {name}=props;
+
+    const handleClick = () => {
+        onClick();
+    };
+
 
     if (name === "finish") {
         return (
@@ -72,7 +77,7 @@ const StatusButton = ({ name }) => {
 
     if (name === "evaluate-inactive") {
         return (
-            <button className="my-button-gray" style={{ width: 79 }}>
+            <button className="my-button-gray" style={{ width: 79 }} onClick={handleClick}>
                 Evaluate
             </button>
         )
@@ -80,7 +85,7 @@ const StatusButton = ({ name }) => {
 
     if (name === "inference-active") {
         return (
-            <button className="my-button-green" style={{ width: 79 }}>
+            <button className="my-button-green" style={{ width: 79 }} onClick={handleClick}>
                 Inference
             </button>
         )
@@ -88,7 +93,7 @@ const StatusButton = ({ name }) => {
 
     if (name === "inference-inactive") {
         return (
-            <button className="my-button-gray" style={{ width: 79 }}>
+            <button className="my-button-gray" style={{ width: 79 }} onClick={handleClick}>
                 Inference
             </button>
         )

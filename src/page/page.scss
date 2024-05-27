@@ -1201,36 +1201,36 @@ input[type="checkbox"]:checked {
 
 .my-project-name {
     width: 300px;
-    height:40px;
+    height: 40px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    padding-top:0px;
+    padding-top: 0px;
     font-weight: 800;
     font-family: 'Google Noto Sans TC';
 }
 
-.my-train-method-select{
-    width:420px;
+.my-train-method-select {
+    width: 420px;
 }
 
-.my-month-select{
-    width:150px;
+.my-month-select {
+    width: 150px;
 }
 
-.my-model-select{
-    width:500px;
+.my-model-select {
+    width: 500px;
 }
 
-.my-talbe-th{
-    height:43px;
+.my-talbe-th {
+    height: 43px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.my-talbe-td{
-    height:40px;
+.my-talbe-td {
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1241,7 +1241,7 @@ input[type="checkbox"]:checked {
     height: 43px;
     min-height: 43px;
     font-size: 18px;
-    font-weight:600;
+    font-weight: 600;
     font-family: "Roboto", "Helvetica", "Arial", sans-serif;
     line-height: 43px;
     padding: 0px;
@@ -1249,7 +1249,7 @@ input[type="checkbox"]:checked {
     column-gap: 6px;
 }
 
-.my-tag{
+.my-tag {
     font-size: 18px;
     margin-left: 8px;
 }
@@ -1264,7 +1264,7 @@ input[type="checkbox"]:checked {
     text-align: center;
     gap: 6px;
     background-color: #FFFFFF;
-    margin-top:10px;
+    margin-top: 10px;
 }
 
 .my-train-parameter-container-left {
@@ -1283,14 +1283,14 @@ input[type="checkbox"]:checked {
     box-sizing: border-box;
 }
 
-.my-parameter-input{
-    height: 36px!important;
+.my-parameter-input {
+    height: 36px !important;
     padding: 0 6px;
     margin-right: 6px;
     //color: #444444;
     font-size: 16px;
-    box-sizing: border-box; 
-    border:red;
+    box-sizing: border-box;
+    border: red;
 }
 
 .my-nav-link {
@@ -1361,7 +1361,7 @@ input[type="checkbox"]:checked {
     scrollbar-gutter: stable;
     z-index: 10;
     position: relative;
-   
+
 }
 
 .my-thead-th {
@@ -1631,7 +1631,7 @@ input[type="checkbox"]:checked {
     height: 24px;
     border-radius: 4px;
     cursor: default !important;
- 
+
 }
 
 .my-button-yellow {
@@ -1724,16 +1724,85 @@ input[type="checkbox"]:checked {
     background-color: gray;
 }
 
+.my-dialog-title {
+    font-size: 24px;
+    font-weight: 500;
+    color: #16272E;
+}
+
+.my-dialog-content {
+    height: 700px;
+    overflow-y: scroll;
+}
+
+.my-result-card {
+    border: 1px solid #e0e1e6;
+    border-radius: 12px;
+    box-shadow: 0 0 4px #cacbd733;
+    padding: 10px 10px 10px 10px!important;
+}
+
+
+.my-tag-1 {
+    background: #57B8FF14;
+    border: 1px solid #57B8FF;
+    border-radius: 4px;
+    color: #57B8FF;
+    padding: 3px 10px;
+}
+
+.my-tag-2 {
+    background: #21D59B14;
+    border: 1px solid #21D59B;
+    border-radius: 4px;
+    color: #21D59B;
+    padding: 3px 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.my-tag-3 {
+    background: #FF359A14;
+    border: 1px solid #FF359A;
+    border-radius: 4px;
+    color: #FF359A;
+    padding: 3px 10px;
+}
+
+.my-image-container {
+    border-radius: 10px 10px 0px 0px;
+    border:3px solid #FFC400;
+}
+
+.my-image-title {
+    height:35px;
+    background-color: #FFC400CC;
+    display: flex;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 3px solid #FFC400;
+}
+
+.my-image-frame{
+    width:400px;
+    height:300px;
+    overflow: scroll;
+    
+}
+
 
 .form-control:focus {
     border-color: #28a745;
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-} 
+}
 
 .form-control:focus {
     border-color: #28a745;
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-} 
+}
 
 .MuiLinearProgress-sizeLg {
     background-color: #0000000F !important;
@@ -1741,24 +1810,45 @@ input[type="checkbox"]:checked {
     ;
 }
 
+.MuiModal-backdrop {
+    backdrop-filter: blur(0px) !important;
+    background-color: #0000001f !important;
+}
 
-@keyframes blink { 
-  
-    0%, 
-    100% { 
-        background-color: #FFC40022; 
-        /* First color - red */ 
-    } 
+.MuiModal-root {
+    /* background-color: #0000001f !important; */
 
-    50% { 
-        background-color: #FFC40011; 
-        /* Second color - black */ 
-    } 
-} 
+    /* more button backdrop color here */
+    background-color: transparent !important;
+
+}
+
+.MuiModalDialog-root {
+    border: 1px solid #E0E1E6 !important;
+    border-radius: 12px !important;
+    box-shadow: 0px 0px 4px #CACBD733 !important;
+    padding: 40px !important;
+
+}
+
+
+@keyframes blink {
+
+    0%,
+    100% {
+        background-color: #FFC40022;
+        /* First color - red */
+    }
+
+    50% {
+        background-color: #FFC40011;
+        /* Second color - black */
+    }
+}
 
 /* Apply the "blink" animation to  
-elements with class "blinking-effect" */ 
-.blinking-effect { 
-    animation: blink 1s linear infinite; 
-    /* The animation will run indefinitely */ 
-} 
+elements with class "blinking-effect" */
+.blinking-effect {
+    animation: blink 1s linear infinite;
+    /* The animation will run indefinitely */
+}

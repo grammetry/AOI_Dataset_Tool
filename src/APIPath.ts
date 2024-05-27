@@ -104,3 +104,7 @@ export const taoQuickTrainAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${tr
 export const taoStartTrainAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train`;
 
 export const taoTrainStatusWS = `${wsLocalhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train/container`; 
+
+export const taoEvaluateAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/evaluate`;
+
+export const taoInferenceAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/inference`;

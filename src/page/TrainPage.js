@@ -2,10 +2,12 @@
 import { useEffect, useState, useRef } from 'react';
 import './page.scss';
 import { Button, createTheme, Menu, MenuItem, ThemeProvider, Tooltip } from '@mui/material';
+import Modal from '@mui/joy/Modal';
+import ModalDialog from '@mui/joy/ModalDialog';
 import { extendTheme } from '@mui/joy/styles';
 import { AttributeType, PageKeyType, ProjectDataType } from './type';
 import { SchedulerHeadContainer, SchedulerHeadWrapper, SchedulerBodyContainer, SchedulerBodyWrapper } from "./pageStyle";
-import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI, taoTrainStatusWS } from '../APIPath';
+import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI, taoTrainStatusWS, taoEvaluateAPI, taoInferenceAPI } from '../APIPath';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap/js/dist/tab.js';
 import log from '../utils/console';
@@ -16,11 +18,13 @@ import CustomChart from '../components/Charts/CustomChart';
 import StatusButton from '../components/Buttons/StatusButton';
 import CustomButton from '../components/Buttons/CustomButton';
 import ExtendButton from '../components/Buttons/ExtendButton';
+
+import ResultCard from '../components/Cards/ResultCard';
 import WebSocketUtility from '../components/WebSocketUtility.js';
 import Stack from '@mui/joy/Stack';
 import LinearProgress from '@mui/joy/LinearProgress';
 import moment from 'moment';
-import { filter, toArray, findIndex } from 'lodash-es';
+import { filter, toArray, findIndex, isEqual, map, cloneDeep } from 'lodash-es';
 import { get, set } from 'lodash';
 
 export const theme = extendTheme({
@@ -54,6 +58,8 @@ const TrainPage = (props) => {
     const [table1HeaderNoShadow, setTable1HeaderNoShadow] = useState(true);
     const [table2HeaderNoShadow, setTable2HeaderNoShadow] = useState(true);
 
+    const [showInferenceResultModal,setShowInferenceResultModal] = useState(false);
+
     const currentTableColumnWidth = [100, 470, 180, 220, 150];
     const historyTableColumnWidth = [100, 400, 400, 150, 150];
 
@@ -61,23 +67,48 @@ const TrainPage = (props) => {
     const [startTime, setStartTime] = useState('');
 
     const [taskList, setTaskList] = useState([]);
+    const [fetchList, setFetchList] = useState([]);
+    const [resultList, setResultList] = useState([]);
+
     const [historyList, setHistoryList] = useState([]);
 
     const chartRef = useRef(null);
     const utilityRef = useRef(null);
 
-    const getTrainingList = async () => {
+    const getTrainingList_xx = async () => {
 
         //utilityRef.current.ShowMessage('test');
+
+        log('---- get training list ----')
 
         const response = await fetch(taoStartTrainAPI, {
             method: 'GET'
         });
 
         const myData = await response.json();
-        setTaskList(myData);
 
-        if (myData.length === 0) 
+        console.log(myData);
+
+        const uuidList_A = map(myData, 'tao_model_uuid');
+        const uuidList_B = map(cloneDeep(taskList), 'tao_model_uuid');
+
+        log('-----------------')
+        console.log(uuidList_A);
+        console.log(uuidList_B);
+        console.log(taskList);
+
+        log('currentUuid')
+        console.log(currentUuid);
+
+
+
+        if (currentUuid === null) {
+            log('setTaskList')
+            setTaskList(myData);
+
+        }
+
+        if (myData.length === 0)
             setNoTask(true);
         else
             setNoTask(false);
@@ -86,11 +117,68 @@ const TrainPage = (props) => {
 
             if (item.train_status.status === 'START') {
 
-                setCurrentUuid(item.tao_model_uuid);
-                getTrainStatus(item.tao_model_uuid);
+                if (item.tao_model_uuid !== currentUuid) {
+                    setCurrentUuid(item.tao_model_uuid);
+                    getTrainStatus(item.tao_model_uuid);
+                    setCurrentStep(0);
+                    setCurrentPercent(0);
+                    if (chartRef.current) {
+                        chartRef.current.resetLineData();
+                    }
+                }
 
             }
         });
+
+    }
+
+    const getTrainingList = () => {
+
+        //utilityRef.current.ShowMessage('test');
+
+        log('---- get training list ----')
+
+        fetch(taoStartTrainAPI, {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            if (data.length === 0)
+                setNoTask(true);
+            else
+                setNoTask(false);
+
+
+            
+
+            setFetchList(data);
+
+        });
+
+
+
+        // const uuidList_A = map(myData, 'tao_model_uuid');
+        // const uuidList_B = map(cloneDeep(taskList), 'tao_model_uuid');
+
+        // log('-----------------')
+        // console.log(uuidList_A);
+        // console.log(uuidList_B);
+        // console.log(taskList);
+
+        // log('currentUuid')
+        // console.log(currentUuid);
+
+
+
+        // if (currentUuid === null) {
+        //     log('setTaskList')
+        //     setTaskList(myData);
+
+        // }
+
+
+
 
     }
 
@@ -119,7 +207,7 @@ const TrainPage = (props) => {
             const data = await response.json();
             console.log(data);
             //setTaskList(data);
-            getTrainingList();
+            await getTrainingList();
 
 
         }
@@ -231,13 +319,7 @@ const TrainPage = (props) => {
         websocket.setMessageCallback(async (message) => {
 
 
-            console.log(message);
-
-            //Training finished successfully.
-
             if (message.indexOf('Training finished successfully.') >= 0) {
-                setCurrentUuid(null);
-                getTrainingList();
                 websocket.stop();
 
             } else {
@@ -294,17 +376,148 @@ const TrainPage = (props) => {
             }
 
 
-
-            // if (myData.detail){
-            //     console.log(myData.detail);
-            // }
-
-
         });
 
         websocket.start();
 
     }
+
+    const doEvaluate = async (myModelId) => {
+
+        log(`doEvaluate ${myModelId}`);
+
+        const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
+        if (myIndex1>=0) {
+            
+            const myTrainStatus = historyList[myIndex1].tao_model_status.train.status;
+
+            if (myTrainStatus) {
+                
+                try {
+                    log('try evaluate model')
+                    const response = await fetch(taoEvaluateAPI, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({"tao_model_uuid": myModelId}),
+                    });
+
+                    const data = await response.json();
+                    console.log(data);
+                    getHistoryList();
+                    
+                } catch (err) {
+                    const msg = err?.response?.detail?.[0]?.msg || '';
+                    const loc = err?.response?.detail?.[0]?.loc || [];
+                    console.log(`API error: ${msg} [${loc.join(', ')}]`);
+                    
+                }
+
+            }
+          
+        };
+
+    };
+
+    const doInference = async (myModelId) => {
+
+        log(`doInference ${myModelId}`)
+
+        const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
+        if (myIndex1>=0) {
+            
+            const myEvaluateStatus = historyList[myIndex1].tao_model_status.evaluate.status;
+            const myInferenceStatus = historyList[myIndex1].tao_model_status.inference.status;
+
+            if (myInferenceStatus){
+
+                try {
+                    log('get inference result')
+                    const response = await fetch(`${taoInferenceAPI}/result?tao_model_uuid=${myModelId}`, {
+                        method: 'GET',
+                    });
+
+                    const data = await response.text();
+                    const dataArr=data.split('\n');
+                    let resultArr=[];
+                    dataArr.map((item,index)=>{
+                        //console.log(item);
+
+                        if (index>0){
+                            const lineArr=item.split(',');
+                            console.log(lineArr);
+                            if (lineArr.length<3) return;
+                            const compName=lineArr[0].substring(0,lineArr[0].indexOf('/'));
+                            //log(`compName=${compName}`);
+                            const lightSource=lineArr[0].substring(lineArr[0].lastIndexOf('/')+1,lineArr[0].length);
+                            //log(`lightSource=${lightSource}`);
+                            const label=lineArr[2];
+                            //log(`label=${label}`);
+                            const uuidList=lineArr[3].split('_');
+                            //console.log(uuidList);
+                            const goldenUuid=uuidList[1];
+                            //log(`goldenUuid=${goldenUuid}`);
+                            const imageUuid=uuidList[2];
+                            //log(`imageUuid=${imageUuid}`);
+                            const score=lineArr[4];
+                            //log(`score=${score}`);
+
+                            let myData={};
+                            myData.compName=compName;
+                            myData.lightSource=lightSource;
+                            myData.label=label; 
+                            myData.goldenUuid=goldenUuid;
+                            myData.imageUuid=imageUuid;
+                            myData.score=score;
+                            resultArr.push(myData);
+                        }
+                    });
+
+                    setResultList(resultArr);
+                    setShowInferenceResultModal(true);
+                   
+                    
+                } catch (err) {
+                    console.log(err)
+                    const msg = err?.response?.detail?.[0]?.msg || '';
+                    const loc = err?.response?.detail?.[0]?.loc || [];
+                    console.log(`API error: ${msg} [${loc.join(', ')}]`);
+                    
+                }
+
+            }else{
+                if (myEvaluateStatus) {
+                
+                    try {
+                        log('try evaluate model')
+                        const response = await fetch(taoInferenceAPI, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({"tao_model_uuid": myModelId}),
+                        });
+    
+                        const data = await response.json();
+                        console.log(data);
+                        getHistoryList();
+                        
+                    } catch (err) {
+                        const msg = err?.response?.detail?.[0]?.msg || '';
+                        const loc = err?.response?.detail?.[0]?.loc || [];
+                        console.log(`API error: ${msg} [${loc.join(', ')}]`);
+                        
+                    }
+    
+                }
+            }
+
+          
+          
+        };
+
+    };
 
     useEffect(() => {
 
@@ -315,6 +528,11 @@ const TrainPage = (props) => {
 
         log('---- project data ----')
         console.log(props.projectData);
+
+        // every 5 seconds get training list
+        const interval = setInterval(() => {
+            getTrainingList();
+        }, 10000);
 
 
 
@@ -328,6 +546,35 @@ const TrainPage = (props) => {
     //     }
 
     // }, [currentUuid]);
+
+    useEffect(() => {
+
+        const myTaskList = map(taskList, 'tao_model_uuid');
+        const myFetchList = map(fetchList, 'tao_model_uuid');
+
+        if (!isEqual(myTaskList, myFetchList)) {
+            setTaskList(fetchList);
+            fetchList.map((item, index) => {
+
+                if (item.train_status.status === 'START') {
+
+                    if (item.tao_model_uuid !== currentUuid) {
+                        setCurrentUuid(item.tao_model_uuid);
+                        getTrainStatus(item.tao_model_uuid);
+                        setCurrentStep(0);
+                        setCurrentPercent(0);
+                        if (chartRef.current) {
+                            chartRef.current.resetLineData();
+                        }
+                    }
+
+                }
+            });
+
+        }
+
+    }, [taskList,fetchList]);
+
 
 
     return (
@@ -523,7 +770,7 @@ const TrainPage = (props) => {
 
                                                         <div key={`history_${index}`} >
 
-                                                            <div className={(index === (taskList.length - 1)) ? `my-tbody-row-${(index % 2 === 1) ? "1" : "2"} flash-element` : `my-tbody-row-${(index % 2 === 1) ? "1" : "2"}`} task_uuid={item.tao_model_uuid} onClick={() => console.log('click')}>
+                                                            <div className={(index === (taskList.length - 1)) ? `my-tbody-row-${(index % 2 === 1) ? "1" : "2"} flash-element` : `my-tbody-row-${(index % 2 === 1) ? "1" : "2"}`} task_uuid={item.tao_model_uuid}>
 
                                                                 <div className='my-tbody-td' style={{ width: historyTableColumnWidth[0] }} >{index + 1}</div>
                                                                 <div className='my-tbody-td' style={{ width: historyTableColumnWidth[1], overflow: 'hidden', textOverflow: 'ellipsis' }} >
@@ -535,22 +782,22 @@ const TrainPage = (props) => {
                                                                     {
                                                                         (item.tao_model_status.train.status) ? <StatusButton name="train-active" /> :
                                                                             (item.tao_model_uuid === currentUuid) ? <StatusButton name="training" /> :
-                                                                                <StatusButton name="train-inactive" /> 
+                                                                                <StatusButton name="train-inactive" />
                                                                     }
-                                                
+
                                                                     {
                                                                         (item.tao_model_status.evaluate.status) ?
                                                                             <StatusButton name="evaluate-active" />
                                                                             :
-                                                                            <StatusButton name="evaluate-inactive" />
+                                                                            <StatusButton name="evaluate-inactive" onClick={()=>doEvaluate(item.tao_model_uuid)}/>
 
                                                                     }
 
                                                                     {
                                                                         (item.tao_model_status.inference.status) ?
-                                                                            <StatusButton name="inference-active" />
+                                                                            <StatusButton name="inference-active" onClick={()=>doInference(item.tao_model_uuid)}/>
                                                                             :
-                                                                            <StatusButton name="inference-inactive" />
+                                                                            <StatusButton name="inference-inactive" onClick={()=>doInference(item.tao_model_uuid)}/>
 
                                                                     }
 
@@ -579,6 +826,55 @@ const TrainPage = (props) => {
                 </div>
             </ThemeProvider >
             <Utility ref={utilityRef} />
+
+
+            
+
+            <Modal
+                open={showInferenceResultModal}
+            >
+                <ModalDialog
+                    sx={{ minWidth: 1200, maxWidth: 1200, minHeight: 800 }}
+                >
+                    <div className='container-fluid'>
+                        <div className='row'>
+                            <div className='col-12 p-0 my-dialog-title'>
+                                <div>
+                                    Inference Result
+                                </div>
+
+                            </div>
+                        </div>
+                        <div className='row'>
+                            <div className='col-12 p-0 my-dialog-content'>
+                                <div>
+                                    {
+                                         resultList.map((item, i) => (
+                                            <div key={`resultList_${i}`} >
+                                                <ResultCard data={item}></ResultCard>
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+
+                            </div>
+                        </div>
+                        <div className='row'>
+                            <div className='col-12 d-flex justify-content-end' style={{ padding: 0 }}>
+                                <div style={{ paddingTop: 20 }} className='d-flex gap-3'>
+                                    <CustomButton name="cancel" onClick={() => {
+                                        setShowInferenceResultModal(false);
+                                    }} />
+                                    <CustomButton name="save" />
+
+                                </div>
+                            </div>
+                        </div>
+                        
+                       
+                    </div>
+                </ModalDialog>
+            </Modal>
         </>
     );
 }

@@ -10,6 +10,9 @@ const CustomLine = forwardRef((props, ref) => {
     const [line1, setLine1] = useState([]);
     const [line2, setLine2] = useState([]);
 
+    const [line1Label, setLine1Label] = useState('train_loss');
+    const [line2Label, setLine2Label] = useState('val_loss');
+
     const theDecimation = {
         enabled: true,
         algorithm: "lttb",
@@ -118,14 +121,14 @@ const CustomLine = forwardRef((props, ref) => {
         <Line options={options} data={{
             labels, datasets: [
                 {
-                    label: 'line1',
+                    label: line1Label,
                     data: line1,
                     borderColor: '#E61F23',
                     backgroundColor: '#E61F23',
                     lineTension: 0.2
                 },
                 {
-                    label: 'line2',
+                    label: line2Label,
                     data: line2,
                     borderColor: '#57B8FF',
                     backgroundColor: '#57B8FF',
