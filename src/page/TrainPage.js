@@ -7,7 +7,7 @@ import ModalDialog from '@mui/joy/ModalDialog';
 import { extendTheme } from '@mui/joy/styles';
 import { AttributeType, PageKeyType, ProjectDataType } from './type';
 import { SchedulerHeadContainer, SchedulerHeadWrapper, SchedulerBodyContainer, SchedulerBodyWrapper } from "./pageStyle";
-import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI, taoTrainStatusWS, taoEvaluateAPI, taoInferenceAPI } from '../APIPath';
+import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI, taoTrainStatusWS, taoEvaluateAPI, taoInferenceAPI, taoExportAPI, taoDownloadAPI } from '../APIPath';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap/js/dist/tab.js';
 import log from '../utils/console';
@@ -19,12 +19,13 @@ import StatusButton from '../components/Buttons/StatusButton';
 import CustomButton from '../components/Buttons/CustomButton';
 import ExtendButton from '../components/Buttons/ExtendButton';
 
+
 import ResultCard from '../components/Cards/ResultCard';
 import WebSocketUtility from '../components/WebSocketUtility.js';
 import Stack from '@mui/joy/Stack';
 import LinearProgress from '@mui/joy/LinearProgress';
 import moment from 'moment';
-import { filter, toArray, findIndex, isEqual, map, cloneDeep } from 'lodash-es';
+import { filter, toArray, findIndex, isEqual, map, cloneDeep, sortBy, orderBy } from 'lodash-es';
 import { get, set } from 'lodash';
 
 export const theme = extendTheme({
@@ -46,7 +47,7 @@ export const theme = extendTheme({
 
 const TrainPage = (props) => {
 
-    const { setPageKey, projectData } = props;
+    const { setPageKey, projectData, setCurrentProject } = props;
     const [noTask, setNoTask] = useState(true);
 
     const [currentStep, setCurrentStep] = useState(0);
@@ -69,68 +70,12 @@ const TrainPage = (props) => {
     const [taskList, setTaskList] = useState([]);
     const [fetchList, setFetchList] = useState([]);
     const [resultList, setResultList] = useState([]);
+    const [resultId, setResultId] = useState('');
 
     const [historyList, setHistoryList] = useState([]);
 
     const chartRef = useRef(null);
     const utilityRef = useRef(null);
-
-    const getTrainingList_xx = async () => {
-
-        //utilityRef.current.ShowMessage('test');
-
-        log('---- get training list ----')
-
-        const response = await fetch(taoStartTrainAPI, {
-            method: 'GET'
-        });
-
-        const myData = await response.json();
-
-        console.log(myData);
-
-        const uuidList_A = map(myData, 'tao_model_uuid');
-        const uuidList_B = map(cloneDeep(taskList), 'tao_model_uuid');
-
-        log('-----------------')
-        console.log(uuidList_A);
-        console.log(uuidList_B);
-        console.log(taskList);
-
-        log('currentUuid')
-        console.log(currentUuid);
-
-
-
-        if (currentUuid === null) {
-            log('setTaskList')
-            setTaskList(myData);
-
-        }
-
-        if (myData.length === 0)
-            setNoTask(true);
-        else
-            setNoTask(false);
-
-        myData.map((item, index) => {
-
-            if (item.train_status.status === 'START') {
-
-                if (item.tao_model_uuid !== currentUuid) {
-                    setCurrentUuid(item.tao_model_uuid);
-                    getTrainStatus(item.tao_model_uuid);
-                    setCurrentStep(0);
-                    setCurrentPercent(0);
-                    if (chartRef.current) {
-                        chartRef.current.resetLineData();
-                    }
-                }
-
-            }
-        });
-
-    }
 
     const getTrainingList = () => {
 
@@ -150,34 +95,11 @@ const TrainPage = (props) => {
                 setNoTask(false);
 
 
-            
+            console.log(data)            
 
             setFetchList(data);
 
         });
-
-
-
-        // const uuidList_A = map(myData, 'tao_model_uuid');
-        // const uuidList_B = map(cloneDeep(taskList), 'tao_model_uuid');
-
-        // log('-----------------')
-        // console.log(uuidList_A);
-        // console.log(uuidList_B);
-        // console.log(taskList);
-
-        // log('currentUuid')
-        // console.log(currentUuid);
-
-
-
-        // if (currentUuid === null) {
-        //     log('setTaskList')
-        //     setTaskList(myData);
-
-        // }
-
-
 
 
     }
@@ -196,6 +118,8 @@ const TrainPage = (props) => {
             myData.tao_model_uuid = myTaskId;
             myData.force = "false";
 
+            utilityRef.current.SetLoading(true);
+
             const response = await fetch(taoStartTrainAPI, {
                 method: 'DELETE',
                 headers: {
@@ -205,12 +129,21 @@ const TrainPage = (props) => {
             });
 
             const data = await response.json();
-            console.log(data);
+
+            utilityRef.current.SetLoading(false);
+            
+            //console.log(data);
             //setTaskList(data);
-            await getTrainingList();
+            getTrainingList();
 
 
         }
+
+    }
+
+    const handleViewTask = async (myTaskId, myProjectName) => {
+
+        viewTaskByModelId(myTaskId);
 
     }
 
@@ -395,6 +328,9 @@ const TrainPage = (props) => {
                 
                 try {
                     log('try evaluate model')
+
+                    utilityRef.current.SetLoading(true);
+
                     const response = await fetch(taoEvaluateAPI, {
                         method: 'POST',
                         headers: {
@@ -404,6 +340,8 @@ const TrainPage = (props) => {
                     });
 
                     const data = await response.json();
+
+                    utilityRef.current.SetLoading(false);
                     console.log(data);
                     getHistoryList();
                     
@@ -411,6 +349,7 @@ const TrainPage = (props) => {
                     const msg = err?.response?.detail?.[0]?.msg || '';
                     const loc = err?.response?.detail?.[0]?.loc || [];
                     console.log(`API error: ${msg} [${loc.join(', ')}]`);
+                    utilityRef.current.SetLoading(false);
                     
                 }
 
@@ -419,6 +358,18 @@ const TrainPage = (props) => {
         };
 
     };
+
+    const getProjectIdByDatasetId = (myId)=>{
+
+        console.log(projectData)
+
+        let myProjectId='';
+        const myIndex1 = findIndex(projectData, function (myItem) { return myItem.dataset_uuid == myId })
+        if (myIndex1>=0) {
+            myProjectId=projectData[myIndex1].project_uuid;
+        }
+        return myProjectId;
+    }
 
     const doInference = async (myModelId) => {
 
@@ -429,11 +380,23 @@ const TrainPage = (props) => {
             
             const myEvaluateStatus = historyList[myIndex1].tao_model_status.evaluate.status;
             const myInferenceStatus = historyList[myIndex1].tao_model_status.inference.status;
+            const myDatasetId = historyList[myIndex1].dataset_uuid;
+
+            log('myDatasetId:'+myDatasetId)
+
+            const myProjectId = getProjectIdByDatasetId(myDatasetId);
+            log('myProjectId:'+myProjectId)
+
+            log('item data')
+            console.log(historyList[myIndex1])
 
             if (myInferenceStatus){
 
                 try {
-                    log('get inference result')
+
+                    utilityRef.current.SetLoading(true);
+
+                    log(`get inference result [tao_model_uuid] : ${myModelId}`)
                     const response = await fetch(`${taoInferenceAPI}/result?tao_model_uuid=${myModelId}`, {
                         method: 'GET',
                     });
@@ -446,7 +409,7 @@ const TrainPage = (props) => {
 
                         if (index>0){
                             const lineArr=item.split(',');
-                            console.log(lineArr);
+                            //console.log(lineArr);
                             if (lineArr.length<3) return;
                             const compName=lineArr[0].substring(0,lineArr[0].indexOf('/'));
                             //log(`compName=${compName}`);
@@ -469,13 +432,22 @@ const TrainPage = (props) => {
                             myData.label=label; 
                             myData.goldenUuid=goldenUuid;
                             myData.imageUuid=imageUuid;
-                            myData.score=score;
+                            myData.score=parseFloat(score);
                             resultArr.push(myData);
                         }
                     });
 
-                    setResultList(resultArr);
+
+                    let resultArrSort = orderBy(resultArr, ['score'],['desc']);
+
+                    utilityRef.current.SetLoading(false);
+
+
+                    setResultList(resultArrSort);
+                    setResultId(myModelId);
                     setShowInferenceResultModal(true);
+
+                    
                    
                     
                 } catch (err) {
@@ -483,7 +455,8 @@ const TrainPage = (props) => {
                     const msg = err?.response?.detail?.[0]?.msg || '';
                     const loc = err?.response?.detail?.[0]?.loc || [];
                     console.log(`API error: ${msg} [${loc.join(', ')}]`);
-                    
+                    utilityRef.current.SetLoading(false);
+
                 }
 
             }else{
@@ -491,6 +464,7 @@ const TrainPage = (props) => {
                 
                     try {
                         log('try evaluate model')
+                        utilityRef.current.SetLoading(true);
                         const response = await fetch(taoInferenceAPI, {
                             method: 'POST',
                             headers: {
@@ -501,12 +475,15 @@ const TrainPage = (props) => {
     
                         const data = await response.json();
                         console.log(data);
+                        utilityRef.current.SetLoading(false);
                         getHistoryList();
                         
                     } catch (err) {
                         const msg = err?.response?.detail?.[0]?.msg || '';
                         const loc = err?.response?.detail?.[0]?.loc || [];
                         console.log(`API error: ${msg} [${loc.join(', ')}]`);
+                        utilityRef.current.SetLoading(false);
+
                         
                     }
     
@@ -518,6 +495,100 @@ const TrainPage = (props) => {
         };
 
     };
+
+    const handleLabelToggle = (uuid) => {
+        log('handleLabelToggle===>',uuid)
+        let resultArr = cloneDeep(resultList);
+        const myIndex = findIndex(resultArr, function (myItem) { return myItem.imageUuid == uuid });
+        if (myIndex>=0){
+            resultArr[myIndex].label=(resultArr[myIndex].label==='PASS')?'NG':'PASS';
+            setResultList(resultArr);
+        }
+    };
+
+    const handleDownload = async () => {
+        log('handleDownload '+resultId)
+        //setShowInferenceResultModal(false);
+
+        try {
+            log('try evaluate model')
+            const response1 = await fetch(taoExportAPI, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({"tao_model_uuid": resultId}),
+            });
+
+            const data1 = await response1.json();
+            console.log(data1);
+
+            window.location.href = `${taoDownloadAPI}?tao_model_uuid=${resultId}`;
+
+           
+            
+            
+        } catch (err) {
+
+            console.log(err)
+            // const msg = err?.response?.detail?.[0]?.msg || '';
+            // const loc = err?.response?.detail?.[0]?.loc || [];
+            // console.log(`API error: ${msg} [${loc.join(', ')}]`);
+            
+        }
+    
+    }
+
+    const viewTaskByModelId = async (myModelId) => {
+            
+            log(`viewTaskByModelId ${myModelId}`)
+    
+            const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId });
+
+            if (myIndex1<0) {
+
+                utilityRef.current.ShowMessage('Dataset uuid not found.');
+                return;
+            }
+    
+            const myDatasetId = historyList[myIndex1].dataset_uuid;
+            const myProjectId = getProjectIdByDatasetId(myDatasetId);
+            log('myProjectId:'+myProjectId)
+
+            if (myProjectId==='') {
+
+                utilityRef.current.ShowMessage('Project uuid not found.');
+                return;
+            }
+
+            const myIndex2 = findIndex(projectData, function (myItem) { return myItem.project_uuid == myProjectId });
+
+            if (myIndex2<0) {
+
+                utilityRef.current.ShowMessage('Project not found.');
+                return;
+            }
+
+            if (myIndex2>=0) {
+                const project=projectData[myIndex2];
+                const project_uuid=projectData[myIndex2].project_uuid;
+                
+                setCurrentProject(project);
+                if (project.export_uuid) {
+                    setPageKey('SetAttributePage')
+                }else{
+                    utilityRef.current.ShowMessage('Export uuid not found.');
+                }
+            }
+            
+            
+    }
+
+    const handleViewClick = () => {
+ 
+        viewTaskByModelId(currentUuid);
+
+    }
 
     useEffect(() => {
 
@@ -532,20 +603,13 @@ const TrainPage = (props) => {
         // every 5 seconds get training list
         const interval = setInterval(() => {
             getTrainingList();
+            getHistoryList();
         }, 10000);
 
 
 
     }, []);
 
-    // useEffect(() => {
-
-    //     if (currentUuid !== null) {
-    //         getTrainStatus(currentUuid);
-    //         setCurrentProjectName(getProjectName(currentUuid));
-    //     }
-
-    // }, [currentUuid]);
 
     useEffect(() => {
 
@@ -561,6 +625,7 @@ const TrainPage = (props) => {
                     if (item.tao_model_uuid !== currentUuid) {
                         setCurrentUuid(item.tao_model_uuid);
                         getTrainStatus(item.tao_model_uuid);
+                        getHistoryList();
                         setCurrentStep(0);
                         setCurrentPercent(0);
                         if (chartRef.current) {
@@ -584,6 +649,7 @@ const TrainPage = (props) => {
                 <div className="container">
                     <div className="title-container">
                         <div className="title-style">Train Page</div>
+                        
                     </div>
                     <div className="train-page-content">
                         <SchedulerHeadContainer $noOverFlow={true}>
@@ -648,7 +714,7 @@ const TrainPage = (props) => {
                                                                 </div>
                                                                 <div className='d-flex flex-row justify-content-between' style={{ paddingTop: 15, paddingBottom: 0 }}>
                                                                     <div><CustomButton name="stop" width={116} height={32} /></div>
-                                                                    <div><CustomButton name="view" width={116} height={32} /></div>
+                                                                    <div><CustomButton name="view" width={116} height={32} onClick={handleViewClick}/></div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -737,7 +803,9 @@ const TrainPage = (props) => {
 
                                                                         </div>
                                                                         <div className='my-tbody-td' style={{ width: currentTableColumnWidth[3], fontWeight: 300 }}>{moment.unix(item.create_time / 1000000).format("YYYY-MM-DD HH:mm")}</div>
-                                                                        <div className='my-tbody-td' style={{ width: currentTableColumnWidth[4] }}><ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={handleDeleteTask} /></div>
+                                                                        <div className='my-tbody-td' style={{ width: currentTableColumnWidth[4] }}>
+                                                                            <ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={handleDeleteTask} onViewTask={handleViewTask}/>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             ))}
@@ -780,30 +848,30 @@ const TrainPage = (props) => {
                                                                 </div>
                                                                 <div className='my-tbody-td d-flex flex-row gap-2' style={{ width: historyTableColumnWidth[2] }}>
                                                                     {
-                                                                        (item.tao_model_status.train.status) ? <StatusButton name="train-active" /> :
-                                                                            (item.tao_model_uuid === currentUuid) ? <StatusButton name="training" /> :
-                                                                                <StatusButton name="train-inactive" />
+                                                                        (item.tao_model_status.train.status) ? <StatusButton name="train-active" style={{cursor:'default !important'}}/> :
+                                                                            (item.tao_model_uuid === currentUuid) ? <StatusButton name="training" style={{cursor:'default !important'}}/> :
+                                                                                <StatusButton name="train-inactive" style={{cursor:'default !important'}}/>
                                                                     }
 
                                                                     {
                                                                         (item.tao_model_status.evaluate.status) ?
-                                                                            <StatusButton name="evaluate-active" />
+                                                                            <StatusButton name="evaluate-active" style={{cursor:'none'}}/>
                                                                             :
-                                                                            <StatusButton name="evaluate-inactive" onClick={()=>doEvaluate(item.tao_model_uuid)}/>
+                                                                            <StatusButton name="evaluate-inactive" onClick={()=>doEvaluate(item.tao_model_uuid)} style={{cursor:'pointer'}}/>
 
                                                                     }
 
                                                                     {
                                                                         (item.tao_model_status.inference.status) ?
-                                                                            <StatusButton name="inference-active" onClick={()=>doInference(item.tao_model_uuid)}/>
+                                                                            <StatusButton name="inference-active" onClick={()=>doInference(item.tao_model_uuid)} style={{cursor:'pointer'}}/>
                                                                             :
-                                                                            <StatusButton name="inference-inactive" onClick={()=>doInference(item.tao_model_uuid)}/>
+                                                                            <StatusButton name="inference-inactive" onClick={()=>doInference(item.tao_model_uuid)} style={{cursor:'pointer'}}/>
 
                                                                     }
 
                                                                 </div>
                                                                 <div className='my-tbody-td' style={{ width: historyTableColumnWidth[3], fontWeight: 300 }}>{moment.unix(item.create_time / 1000000).format("YYYY-MM-DD HH:mm")}</div>
-                                                                <div className='my-tbody-td d-flex justify-content-end' style={{ width: historyTableColumnWidth[4], padding: '20px' }}><ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={handleDeleteHistory} /></div>
+                                                                <div className='my-tbody-td d-flex justify-content-end' style={{ width: historyTableColumnWidth[4], padding: '20px' }}><ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={handleDeleteHistory} onViewTask={handleViewTask}/></div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -838,11 +906,11 @@ const TrainPage = (props) => {
                 >
                     <div className='container-fluid'>
                         <div className='row'>
-                            <div className='col-12 p-0 my-dialog-title'>
+                            <div className='col-12 p-0 my-dialog-title d-flex flex-row justify-content-between'>
                                 <div>
                                     Inference Result
                                 </div>
-
+                                <CustomButton name="download" onClick={handleDownload}/>
                             </div>
                         </div>
                         <div className='row'>
@@ -850,8 +918,8 @@ const TrainPage = (props) => {
                                 <div>
                                     {
                                          resultList.map((item, i) => (
-                                            <div key={`resultList_${i}`} >
-                                                <ResultCard data={item}></ResultCard>
+                                            <div key={`resultList_${item.imageUuid}`} >
+                                                <ResultCard data={item} onChange={()=>handleLabelToggle(item.imageUuid)}></ResultCard>
                                             </div>
                                         ))
                                     }

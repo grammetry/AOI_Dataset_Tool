@@ -27,12 +27,19 @@ const ExtendButton = forwardRef((props, ref) => {
 
     const handleDeleteClick = (event) => {
         event.stopPropagation();
-        props.onDeleteTask(props.uuid,props.projectName);
+        props.onDeleteTask(props.uuid, props.projectName);
         setShowExtendMenu(false);
-   
+
     };
 
-   
+    const handleViewClick = (event) => {
+        event.stopPropagation();
+        props.onViewTask(props.uuid, props.projectName);
+        setShowExtendMenu(false);
+
+    };
+
+
     useImperativeHandle(ref, () => ({
 
         getDisabled: () => {
@@ -48,7 +55,7 @@ const ExtendButton = forwardRef((props, ref) => {
             case 1:
                 setButtonClassName('my-extend-button-1')
                 break;
-           
+
             default:
                 setButtonClassName('my-extend-button-1')
 
@@ -77,31 +84,37 @@ const ExtendButton = forwardRef((props, ref) => {
                     // <div className='my-extend-menu' style={{ position: 'absolute', left: -108, top: 32, zIndex: 5 }} onMouseLeave={(e) => setShowExtendMenu(false)}>
                     <OutsideClickHandler
                         onOutsideClick={(evt) => {
-                          
+
                             const actionName = evt.target.getAttribute('name');
-                          
-                            if (actionName!=null){
-                                const uuid=actionName.replace("extendButton_","");
-                                if (props.uuid!==uuid){
+
+                            if (actionName != null) {
+                                const uuid = actionName.replace("extendButton_", "");
+                                if (props.uuid !== uuid) {
                                     setShowExtendMenu(false);
                                 }
-                            }else{
+                            } else {
                                 setShowExtendMenu(false);
                             }
-        
+
                         }}
                     >
                         <div className='my-extend-menu' style={{ position: 'absolute', left: -108, top: 32, zIndex: 5 }} >
 
                             {
                                 (props.type === 1) &&
-                                <div className='my-extend-menu-item' onClick={handleDeleteClick}>
-                                    Delete
-                                </div>
+                                <>
+                                    <div className='my-extend-menu-item' onClick={handleDeleteClick}>
+                                        Delete
+                                    </div>
+                                    <div className='my-extend-menu-item' onClick={handleViewClick}>
+                                        View
+                                    </div>
+                                </>
+
 
                             }
 
-                       
+
 
                         </div>
                     </OutsideClickHandler>

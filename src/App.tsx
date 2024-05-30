@@ -104,7 +104,7 @@ function App() {
                     {pageKey === 'ExportProductPage' && <ExportProductPage {...{ setPageKey, currentProject, fetchProject }} />}
                     {pageKey === 'SetAttributePage' && <SetAttributePage {...{ setPageKey, currentProject }} />}
                     {pageKey === 'LoadingPanelDatasetZipPage' && <LoadingPanelDatasetZipPage {...{ setPageKey, currentProject }} />}
-                    {pageKey === 'TrainPage' && <TrainPage {...{ setPageKey, projectData }} />}
+                    {pageKey === 'TrainPage' && <TrainPage {...{ setPageKey, setCurrentProject, projectData }} />}
                 </div>
                 <LoadingOverlay show={isLoading} />
             </div>

@@ -24,6 +24,7 @@
     "@types/react": "^18.2.22",
     "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^18.2.7",
+    "axios": "^1.7.2",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.3",
     "dayjs": "^1.11.10",
@@ -54,7 +55,7 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint src/**/*.ts{,x}",
     "start": "env-cmd -f .env.dev react-scripts start",
-    "build": "react-scripts build",
+    "build": "env-cmd -f .env.build react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

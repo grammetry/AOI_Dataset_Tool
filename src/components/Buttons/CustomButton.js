@@ -126,6 +126,14 @@ const CustomButton = (props) => {
             )
         }
 
+        if (props.name==="download"){
+            return (
+                <button onClick={props.onClick} className="my-button-submit" style={{width:110}}>
+                    Download
+                </button>
+            )
+        }
+
 
         return (
             <button onClick={props.onClick} className={props.className}>

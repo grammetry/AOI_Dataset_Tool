@@ -8,8 +8,8 @@
 // const wsLocalhost = 'ws://10.204.16.110:8080';
 
 // judy host
-const localhost = 'http://172.16.92.130:8080';
-const wsLocalhost = 'ws://172.16.92.130:8080';
+const localhost = (process.env.REACT_APP_API_URL==='')?`http://${window.location.host}`:process.env.REACT_APP_API_URL;
+const wsLocalhost = (process.env.REACT_APP_WS_URL==='')?`ws://${window.location.host}`:process.env.REACT_APP_WS_URL;
 
 
 //const localhost = 'http://127.0.0.1';
@@ -21,8 +21,9 @@ const wsLocalhost = 'ws://172.16.92.130:8080';
 //const wsLocalhost = 'ws://172.16.92.102:8080';
 
 
+// nginx reverse proxy
 //const localhost = `http://${window.location.host}`;
-//const wsLocalhost = `ws://${window.location.host}`;
+//const wsLocalhost = `ws://${window.location.host}/websocket`;
 
 //const localhost = 'http://10.204.16.110';
 //const wsLocalhost = 'ws://127.0.0.1:3001/socket';
@@ -108,3 +109,7 @@ export const taoTrainStatusWS = `${wsLocalhost}${port}${nginx_proxy}/tao/rest/${
 export const taoEvaluateAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/evaluate`;
 
 export const taoInferenceAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/inference`;
+
+export const taoExportAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/export`;
+
+export const taoDownloadAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/export/download`;

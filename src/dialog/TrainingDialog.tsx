@@ -2,14 +2,18 @@ import { ChangeEvent, Dispatch, MouseEventHandler, SetStateAction, useState, use
 import { useDispatch, useSelector } from 'react-redux';
 import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
+import axios, {isCancel, AxiosError} from 'axios';
 
 import { theme } from '../page/ProjectPage';
-import { OptionType,TaoQuickTrainType,TaoStartTrainType } from '../page/type';
+import { OptionType, TaoQuickTrainType, TaoStartTrainType } from '../page/type';
 import TrainMethodSelector, { TrainMethodSelectorRef } from '../components/Dropdowns/TrainMethodSelector';
 import { setShow, setMessage } from '../redux/store/slice/currentMessage';
 import { WorkspaceType, PageKeyType } from '../page/type';
+import Utility, { UtilityRef } from '../utils/Utility';
 
-import { taoWorkspaceAPI,taoQuickTrainAPI,taoStartTrainAPI } from '../APIPath';
+
+import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI } from '../APIPath';
+import { log } from 'console';
 
 const useStyles = makeStyles()(() => ({
     customDialog: {
@@ -44,11 +48,17 @@ const TrainingDialog = (props: TrainingDialogProps) => {
 
     const dispatch = useDispatch();
 
+    //const utilityRef = useRef(null);
+
+    const utilityRef = useRef<UtilityRef>(null);
+
     const [openParameter, setOpenParameter] = useState(false);
+
+    const [uploadProgress, setUploadProgress] = useState('');
 
     const [trainMethodOption, setTrainMethodOption] = useState<OptionType[]>([{ value: '1', label: 'Quick Train' }, { value: '2', label: 'Advance Train' }]);
 
-    const [trainMethod, setTrainMethod] = useState<OptionType|null>({ value: '1', label: 'Quick Train' });
+    const [trainMethod, setTrainMethod] = useState<OptionType | null>({ value: '1', label: 'Quick Train' });
 
     const trainMethodSelectorRef = useRef<TrainMethodSelectorRef>(null);
 
@@ -78,151 +88,154 @@ const TrainingDialog = (props: TrainingDialogProps) => {
         oppSetState(100 - value);
     };
 
-    const handleTrain = () =>{
+    const handleTrain = async () => {
 
-       
+
         console.log('start training...')
 
-        if (workspaceNameRef.current?.value==='' || workspaceNameRef.current?.value===null){
-            console.log('workspace name is empty');
-            dispatch(setMessage('Workspace name is empty!'));
-            dispatch(setShow(true));
-            return;
-        }
+        try {
 
-        if (selectFileRef.current?.files?.length === 0) {
-            console.log('no file selected');
-            dispatch(setMessage('No file selected!'));
-            dispatch(setShow(true));
-            return;
-        }   
 
-        if (workspaceNameRef.current){
-            const myData:WorkspaceType={
-                project_uuid:null,
-                dataset_uuid:null,
-                export_uuid:null,
-                tao_model_name:workspaceNameRef.current?.value
-            };
-       
-            fetch(taoWorkspaceAPI, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(myData),
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                //console.log('Success:', data);
 
-                console.log('Step 1 : success, get tao_model_uuid from server');
-               
-                if (data.tao_model_uuid){
-                    //console.log(data.tao_model_uuid);
-                    taoQuickTrain(data.tao_model_uuid);
-                }
-                else{
-                    dispatch(setMessage('tao_model_uuid is empty'));
-                    dispatch(setShow(true));
-                }
-                   
-            }).
-            catch((err) => {
-                const msg = err?.response?.detail?.[0]?.msg || '';
-                const loc = err?.response?.detail?.[0]?.loc || [];
-                console.log(err);
-                dispatch(setMessage(`API error: ${msg} [${loc.join(', ')}]`));
+            if (workspaceNameRef.current?.value === '' || workspaceNameRef.current?.value === null) {
+                console.log('workspace name is empty');
+                dispatch(setMessage('Workspace name is empty!'));
                 dispatch(setShow(true));
-            });
+                return;
+            }
 
-        }
+            if (selectFileRef.current?.files?.length === 0) {
+                console.log('no file selected');
+                dispatch(setMessage('No file selected!'));
+                dispatch(setShow(true));
+                return;
+            }
 
-        //setOpenTrainingDialog(false);
+            if (workspaceNameRef.current) {
+                const myData: WorkspaceType = {
+                    project_uuid: null,
+                    dataset_uuid: null,
+                    export_uuid: null,
+                    tao_model_name: workspaceNameRef.current?.value
+                };
 
-    }
+                const res1 = await fetch(taoWorkspaceAPI, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(myData),
+                })
 
-    const taoQuickTrain = (uuid:string) =>{
+                const data1 = await res1.json();
 
-        if (selectFileRef.current){
-            // const myData:TaoQuickTrainType={
-            //     tao_model_uuid:uuid,
-            //     file:selectFileRef.current.files![0]
-            // };
-
-            const myData = new FormData();
-            myData.append('tao_model_uuid', uuid);
-            myData.append('file', selectFileRef.current.files![0])
-         
-
-            fetch(taoQuickTrainAPI, {
-                method: 'POST',
-                body: myData,
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                //console.log('Success:', data);
-
-                console.log('Step 2 : success, upload file to server complete');
-               
-                if (data.detail){
-                    dispatch(setMessage(data.detail));
+                if (data1.detail) {
+                    dispatch(setMessage(data1.detail));
                     dispatch(setShow(true));
                     return;
                 }
 
-                taoStartTrain(uuid);
-              
-                   
-            }).
-            catch((err) => {
-                const msg = err?.response?.detail?.[0]?.msg || '';
-                const loc = err?.response?.detail?.[0]?.loc || [];
-                console.log(err);
-                dispatch(setMessage(`API error: ${msg} [${loc.join(', ')}]`));
-                dispatch(setShow(true));
-            });
+                if (!data1.tao_model_uuid) {
+                    dispatch(setMessage('tao_model_uuid is empty'));
+                    dispatch(setShow(true));
+                    return;
+                }
 
-            //"Content-Type": "multipart/form-data",
+
+                
+
+                console.log('Step 1 : success, create workspace : tao_model_uuid = ' + data1.tao_model_uuid);
+                //taoQuickTrain(data1.tao_model_uuid);
+
+                if (!selectFileRef.current) {
+                    dispatch(setMessage('upload file error!'));
+                    dispatch(setShow(true));
+                    return;
+                }
+
+                const myData2 = new FormData();
+                myData2.append('tao_model_uuid', data1.tao_model_uuid);
+                myData2.append('file', selectFileRef.current.files![0])
+
+                //---------------------------------------------
+                const res2=  await axios.post(taoQuickTrainAPI, myData2, { 
+                    onUploadProgress: (progressEvent) => {
+                      const { loaded, total } = progressEvent;
+
+                        console.log('loaded', loaded? loaded : 'null');
+                        console.log('total', total? total : 'null');
+
+                      if (total) {
+                        let precentage = Math.floor((loaded * 100) / total);
+                        console.log(precentage);
+                        setUploadProgress(`( ${precentage} % )`);
+                      }
+                      
+                    },
+                    headers: {
+                         'Content-Type': 'multipart/form-data'
+                       }
+                   });
+
+                //---------------------------------------------
+
+
+
+                console.log(res2)
+                // const res2 = await fetch(taoQuickTrainAPI, {
+                //     method: 'POST',
+                //     body: myData2,
+                // })
+
+                //const data2 = await res2.json();
+
+                // if (data2.detail) {
+                //     dispatch(setMessage(data2.detail));
+                //     dispatch(setShow(true));
+                //     return;
+                // }
+
+                console.log('Step 2 : success, upload file to server complete');
+
+                const myData3: TaoStartTrainType = {
+                    tao_model_uuid: data1.tao_model_uuid
+                };
+
+                const res3 = await fetch(taoStartTrainAPI, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(myData3),
+                })
+
+                const data3 = await res3.json();
+
+                if (data3.detail) {
+                    dispatch(setMessage(data3.detail));
+                    dispatch(setShow(true));
+                    return;
+                }
+
+                console.log('Step 3 : success, set task started, redirect to TrainPage');
+
+                setPageKey('TrainPage');
+
+            }
+
+        } catch (error: unknown) {
+          
+            if (error instanceof Error) {
+                utilityRef.current?.ShowMessage(error.message);
+            }
         }
 
-       
+
 
     }
 
 
-    const taoStartTrain = (uuid:string)=>{
 
-        const myData:TaoStartTrainType={
-            tao_model_uuid:uuid
-        };
-   
-        fetch(taoStartTrainAPI, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(myData),
-        })
-        .then((response) => response.json())
-        .then((data) => {
-            console.log('Success:', data);
-
-
-            console.log('Step 3 : success, redirect to TrainPage');
-           
-            setPageKey('TrainPage');
-               
-        }).
-        catch((err) => {
-            const msg = err?.response?.detail?.[0]?.msg || '';
-            const loc = err?.response?.detail?.[0]?.loc || [];
-            console.log(err);
-            dispatch(setMessage(`API error: ${msg} [${loc.join(', ')}]`));
-            dispatch(setShow(true));
-        });
-
-    }
 
     return (
         <ThemeProvider theme={theme}>
@@ -242,30 +255,30 @@ const TrainingDialog = (props: TrainingDialogProps) => {
                                 Method of train:
                                 <TrainMethodSelector
                                     options={trainMethodOption}
-                                    onChange={(item: OptionType|null) => { console.log(item); setTrainMethod(item);if (item?.value === '1') { setOpenParameter(false); } else { setOpenParameter(true); } }}
+                                    onChange={(item: OptionType | null) => { console.log(item); setTrainMethod(item); if (item?.value === '1') { setOpenParameter(false); } else { setOpenParameter(true); } }}
                                     className="my-train-method-select"
                                     ref={trainMethodSelectorRef}
                                     defaultOption={trainMethod}
                                 />
 
-                                <div className="my-train-parameter" style={{marginTop:'15px'}}>
-                                    <div className="input-name">tao_model_name:</div> 
+                                <div className="my-train-parameter" style={{ marginTop: '15px' }}>
+                                    <div className="input-name">tao_model_name:</div>
                                     <input type="text" className="form-control form-control-lg" width="20px" ref={workspaceNameRef}></input>
                                 </div>
 
-                                <div className="my-train-parameter" style={{marginTop:'10px'}}>
-                                    <div className="input-name">file:</div> 
+                                <div className="my-train-parameter" style={{ marginTop: '10px' }}>
+                                    <div className="input-name">file: {uploadProgress}</div>
                                     <input type="file" className="form-control form-control-lg" width="20px" ref={selectFileRef}></input>
                                 </div>
 
-                              
+
 
                                 {openParameter &&
                                     <div className="my-train-parameter-container">
                                         <div className="my-train-parameter-container-left">
                                             <div className="my-train-parameter">
                                                 <div className="input-name">margin:</div>
-                                                
+
                                                 <input type="text" className="form-control form-control-lg" width="20px"></input>
                                             </div>
                                             <div className="my-train-parameter">
@@ -317,7 +330,7 @@ const TrainingDialog = (props: TrainingDialogProps) => {
                                     Cancel
                                 </Button>
                                 <Button
-                                    
+
                                     variant="contained"
                                     className="enlarge-button"
                                     sx={{ width: 100, fontSize: 16, padding: '2px 6px', textTransform: 'none', transition: 'transform 0.2s' }}
@@ -330,6 +343,7 @@ const TrainingDialog = (props: TrainingDialogProps) => {
                     </form>
                 </div>
             </Dialog>
+            <Utility ref={utilityRef} />
         </ThemeProvider>
     );
 };

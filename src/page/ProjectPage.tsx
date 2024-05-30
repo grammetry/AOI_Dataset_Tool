@@ -15,6 +15,20 @@ import UpsertProjectDialog from '../dialog/UpsertProjectDialog';
 
 import { AttributeType, PageKeyType, ProjectDataType } from './type';
 
+declare module '@mui/material/styles' {
+    interface Theme {
+      status: {
+        danger: string;
+      };
+    }
+    // allow configuration using `createTheme`
+    interface ThemeOptions {
+      status?: {
+        danger?: string;
+      };
+    }
+  }
+
 export const theme = createTheme({
     palette: {
         primary: {
@@ -27,6 +41,10 @@ export const theme = createTheme({
     typography: {
         fontFamily: 'Google Noto Sans TC',
     },
+    status: {
+        danger: 'orange',
+    }
+    
 });
 
 const calculateWidth = (first: boolean, second: boolean, third: boolean, fifth: boolean) => {
@@ -55,6 +73,10 @@ const ProjectPage = (props: ProjectPageProps) => {
     };
 
     const handleClickProject = (project: ProjectDataType, runningCopyToLocal: boolean, runningConvert: boolean) => {
+
+        console.log('current project')
+        console.log(project)
+
         setCurrentProject(project);
         if (runningCopyToLocal) return setPageKey('LoadingCopyToLocalPage');
         if (runningConvert) return setPageKey('LoadingPanelDatasetZipPage');

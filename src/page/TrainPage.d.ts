@@ -7,6 +7,7 @@ import { Train } from '@mui/icons-material';
 export type TrainPageProps = {
     projectData: ProjectDataType[];
     setPageKey: Dispatch<SetStateAction<PageKeyType>>;
+    setCurrentProject: Dispatch<SetStateAction<ProjectDataType>>;
     };
  
 type TPProps = InferProps<typeof TrainPageProps>

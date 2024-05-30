@@ -559,6 +559,11 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
     const saveData = (exportId: string | null, data?: PanelDatasetType) => {
         if (!exportId) return;
         if (!data) return;
+
+        console.log('--- exportId ---', exportId);
+
+        console.log('--- data ---', data);
+
         setIsLoading(true);
 
         const APIList: PanelDatasetPromiseType = [

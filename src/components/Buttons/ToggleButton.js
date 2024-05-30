@@ -56,8 +56,8 @@ const ToggleButton = forwardRef((props, ref) => {
 
     const handleCheckboxChange = (event) => {
 
-        log('checked?')
-        log(event.target.checked)
+        //log('checked?')
+        //log(event.target.checked)
         //setDisabled(true);
         setIsChecked(event.target.checked);
         props.onChange(event.target.checked);
@@ -97,8 +97,8 @@ const ToggleButton = forwardRef((props, ref) => {
 
         <div>
             <CheckBoxWrapper>
-                <CheckBox id="checkbox" type="checkbox" checked={isChecked} onChange={handleCheckboxChange} />
-                <CheckBoxLabel htmlFor="checkbox" />
+                <CheckBox id={`checkbox_${props.id}`} type="checkbox" checked={isChecked} onChange={handleCheckboxChange} />
+                <CheckBoxLabel htmlFor={`checkbox_${props.id}`} />
             </CheckBoxWrapper>
         </div>
     );
