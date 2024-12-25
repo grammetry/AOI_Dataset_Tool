@@ -1,18 +1,22 @@
 import { ChangeEvent, Dispatch, MouseEventHandler, SetStateAction } from 'react';
 import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
+import { faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import CustomButton from '../components/Buttons/CustomButton';
+
 
 import { theme } from '../page/ProjectPage';
 
 const useStyles = makeStyles()(() => ({
   customDialog: {
-    borderRadius: 4,
     '.MuiPaper-root': {
       width: '50%',
       height: '60%',
-      maxWidth: 500,
+      maxWidth: 600,
       maxHeight: 360,
       backgroundColor: '#FFFCF9',
+      borderRadius: 12,
     },
   },
 }));
@@ -80,25 +84,29 @@ const RatioDialog = (props: RatioDialogProps) => {
       >
         <div className="dialog-container">
           <div className="title-style">Ratio distribution</div>
-          <form onSubmit={() => {}}>
+          <form onSubmit={() => { }}>
             <div className="dialog-content">
               <div className="dialog-text">
                 <div className="border-div-container">
                   <div className="border-div">
-                    PASS
+                    <div className='my-border-title'>PASS</div>
                     <div className="distribution-input">
                       <div className="input-name">train:</div>
                       <input
+                        className='my-ratio-input'
                         type="number"
                         step="1"
                         value={String(trainPass).replace(/^0+(?=\d)/, '')}
                         onChange={(e) => handleChange(e, setTrainPass, setValPass)}
                       />
+
+
                       %
                     </div>
                     <div className="distribution-input">
                       <div className="input-name">val:</div>
                       <input
+                        className='my-ratio-input'
                         type="number"
                         step="1"
                         value={String(valPass).replace(/^0+(?=\d)/, '')}
@@ -108,10 +116,11 @@ const RatioDialog = (props: RatioDialogProps) => {
                     </div>
                   </div>
                   <div className="border-div">
-                    NG
+                    <div className='my-border-title'>NG</div>
                     <div className="distribution-input">
                       <div className="input-name">train:</div>
                       <input
+                        className='my-ratio-input'
                         type="number"
                         step="1"
                         value={String(trainNg).replace(/^0+(?=\d)/, '')}
@@ -122,6 +131,7 @@ const RatioDialog = (props: RatioDialogProps) => {
                     <div className="distribution-input">
                       <div className="input-name">val:</div>
                       <input
+                        className='my-ratio-input'
                         type="number"
                         step="1"
                         value={String(valNg).replace(/^0+(?=\d)/, '')}
@@ -133,33 +143,15 @@ const RatioDialog = (props: RatioDialogProps) => {
                 </div>
               </div>
               <div className="lower-right-button-container">
-                <Button
-                  variant="outlined"
-                  className="enlarge-button"
-                  sx={{
-                    width: 100,
-                    fontSize: 16,
-                    padding: '2px 6px',
-                    textTransform: 'none',
-                    boxShadow: '0px 2px 2px 0px #00000010',
-                    transition: 'transform 0.2s',
-                  }}
-                  onClick={() => setOpenRatioDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  className="enlarge-button"
-                  sx={{ width: 100, fontSize: 16, padding: '2px 6px', textTransform: 'none', transition: 'transform 0.2s' }}
-                  onClick={(e) => {
-                    adjustRatio(e);
-                    setOpenRatioDialog(false);
-                  }}
-                >
-                  OK
-                </Button>
+                
+                <CustomButton name='cancel' text='Cancel' width={100} onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                  e.preventDefault();
+                  setOpenRatioDialog(false);
+                }}></CustomButton>
+                <CustomButton name='view' text='OK' width={100} onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                  adjustRatio(e);
+                  setOpenRatioDialog(false);
+                }}></CustomButton>
               </div>
             </div>
           </form>

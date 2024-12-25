@@ -20,7 +20,7 @@ const CustomButton = (props) => {
        
         if (props.name==="confirm"){
             return (
-                <button onClick={props.onClick} className="my-button-submit">
+                <button onClick={props.onClick} className="my-button-submit" style={{width:props.width,height:props.height}}>
                     OK
                 </button>
             )
@@ -28,9 +28,57 @@ const CustomButton = (props) => {
 
         if (props.name==="view"){
             return (
-                <button onClick={props.onClick} className="my-button-submit" style={{width:props.width,height:props.height}}>
-                    View
+                <button onClick={(e)=>props.onClick(e)} className={(props.disabled)?"my-button-disable":"my-button-submit"} style={{width:props.width,height:props.height}} disabled={props.disabled}>
+                    {props.text}
                 </button>
+            )
+        }
+
+        if (props.name==="button-type-1"){
+            return (
+                <div onClick={props.onClick} className={(props.disabled)?"my-button-disable":"my-button-type-1"} style={{width:props.width,height:props.height}} disabled={props.disabled}>
+                    {props.text}
+                </div>
+            )
+        }
+
+        if (props.name==="button-type-2"){
+            return (
+                <div onClick={props.onClick} className={(props.disabled)?"my-button-disable":"my-button-type-2"} style={{width:props.width,height:props.height}} disabled={props.disabled}>
+                    {props.text}
+                </div>
+            )
+        }
+
+        if (props.name==="submit"){
+            return (
+                <button type="submit" onClick={props.onClick} className={(props.disabled)?"my-button-disable":"my-button-submit"} style={{width:props.width,height:props.height}} disabled={props.disabled}>
+                    {props.text}
+                </button>
+            )
+        }
+
+        if (props.name==="function"){
+            return (
+                <div onClick={props.onClick} className={(props.focus)?"my-button-function-focus":"my-button-function"} style={{width:props.width,height:props.height}}>
+                    {props.text}
+                </div>
+            )
+        }
+
+        if (props.name==="outline"){
+            return (
+                <div onClick={props.onClick} className="my-button-outline" style={{width:props.width,height:props.height}}>
+                    {props.text}
+                </div>
+            )
+        }
+
+        if (props.name==="general"){
+            return (
+                <div onClick={props.onClick} className="my-button-general" style={{width:props.width,height:props.height}}>
+                    {props.text}
+                </div>
             )
         }
 
@@ -54,7 +102,7 @@ const CustomButton = (props) => {
 
         if (props.name==="cancel"){
             return (
-                <button onClick={props.onClick} className="my-button-cancel">
+                <button onClick={(e)=>props.onClick(e)} className="my-button-cancel" style={{width:props.width,height:props.height}}>
                     Cancel
                 </button>
             )
@@ -78,7 +126,7 @@ const CustomButton = (props) => {
 
         if (props.name==="close"){
             return (
-                <button onClick={props.onClick} className="my-button-cancel">
+                <button onClick={props.onClick} className="my-button-cancel" style={{width:props.width,height:props.height}}>
                     Close
                 </button>
             )
@@ -128,7 +176,7 @@ const CustomButton = (props) => {
 
         if (props.name==="download"){
             return (
-                <button onClick={props.onClick} className="my-button-submit" style={{width:110}}>
+                <button onClick={props.onClick} className="my-button-submit" style={{width:props.width,height:props.height}}>
                     Download
                 </button>
             )
@@ -148,6 +196,10 @@ const CustomButton = (props) => {
 CustomButton.propTypes = {
     onClick: PropTypes.func,
     disabled: PropTypes.bool,
+    name:PropTypes.string,
+    text:PropTypes.string,
+    width:PropTypes.number,
+    height:PropTypes.number,
 }
 
 export default CustomButton;

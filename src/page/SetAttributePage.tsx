@@ -1,18 +1,26 @@
 import { Dispatch, FormEventHandler, MouseEventHandler, SetStateAction, useCallback, useEffect, useState, useRef, MouseEvent } from 'react';
-import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faCircleExclamation,faBan, faCheck, faTriangleExclamation, faSquareXmark, faSquareCheck, faSquareMinus, faCircle, faCircleMinus, faCircleXmark, faCircleCheck, faCircleInfo, faLightbulb } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Button, ThemeProvider } from '@mui/material';
-import { cloneDeep, filter, find, remove, keys } from 'lodash';
+import { cloneDeep, filter, find, remove, keys, set } from 'lodash-es';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import moment from "moment";
 import Hotkeys from 'react-hot-keys';
 import Modal from 'react-bootstrap/Modal';
 import { useDispatch, useSelector } from 'react-redux';
 
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import IndeterminateCheckBoxIcon from '@mui/icons-material/IndeterminateCheckBox';
+import Utility,{UtilityRef} from '../utils/Utility';
+
+
+
+
 import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
 
-import { selectCurrentList, setToggleArea, setClearList, setSelectedList, setSomethingChange } from '../redux/store/slice/currentSelected';
+import { selectCurrentList, setToggleArea, setClearList, setSelectedList, setSomethingChange, setToggleItem } from '../redux/store/slice/currentSelected';
 import { selectCurrentDataset, setPanelDatasetThird } from '../redux/store/slice/currentDataset';
 
 import {
@@ -28,10 +36,14 @@ import {
 import DivEllipsisWithTooltip from '../components/DivEllipsisWithTooltip';
 import DraggableCard from '../components/DraggableCard';
 import LoadingOverlay from '../components/LoadingOverlay';
+import CustomTab from '../components/Tabs/CustomTab';
+import CustomButton from '../components/Buttons/CustomButton';
 
 import ConfirmDialog from '../dialog/ConfirmDialog';
 import RatioDialog from '../dialog/RatioDialog';
-import TrainingDialog from '../dialog/TrainingDialog';
+import TrainingDialog, { TrainingDialogRef } from '../dialog/TrainingDialog';
+import HintDialog, { HintDialogRef } from '../dialog/HintDialog';
+import AddPicDialog, { AddPicDialogRef } from '../dialog/AddPicDialog';
 import WarningDialog from '../dialog/WarningDialog';
 import { theme } from './ProjectPage';
 import { datasetImgAPI } from '../APIPath';
@@ -50,18 +62,32 @@ import {
 
 
 const getCheckStatus = (data: Record<string, PanelDatasetType>) => {
+
     return Object.keys(data)
         .map((item) => data[item].check)
         .reduce((a, b) => a && b);
 };
 
+const getCheckStatusNum = (data: Record<string, PanelDatasetType>) => {
+    // 1: all checked, 2: all unchekced, 3: mix
+    const checkArr = Object.keys(data).map((item) => data[item].check);
+    const total = checkArr.length;
+    const checkNum = checkArr.filter((item) => item === true).length;
+    const uncheckNum = checkArr.filter((item) => item === false).length;
+
+    if (total == checkNum) return 1;
+    if (total == uncheckNum) return 2;
+    return 3;
+};
+
 type SetAttributePagePageProps = {
     currentProject: ProjectDataType;
     setPageKey: Dispatch<SetStateAction<PageKeyType>>;
+    fetchProject: (projectId: string) => void;
 };
 
 const SetAttributePage = (props: SetAttributePagePageProps) => {
-    const { currentProject, setPageKey } = props;
+    const { currentProject, setPageKey, fetchProject } = props;
     //const [somethingChange, setSomethingChange] = useState(false);
     const [tempComp, setTempComp] = useState('');
     const [tempLight, setTempLight] = useState('');
@@ -84,11 +110,17 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
 
     const [hoverItem, sethoverItem] = useState('');
     const [show, setShow] = useState(false);
+    const [showHint, setShowHint] = useState(false);
+    const [showAddPic, setShowAddPic] = useState(false);
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
     const dispatch = useDispatch();
+
+    //const utilityRef<UtilityRef></UtilityRef> = useRef(null);
+
+    const utilityRef = useRef<UtilityRef>(null);
 
     const panelDatasetThird = useSelector(selectCurrentDataset).dataset;
     const selectedList = useSelector(selectCurrentList).list;
@@ -107,6 +139,16 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
     const [trainDeletePage, setTrainDeletePage] = useState(1);
 
     const passPanelRef = useRef<HTMLInputElement>(null);
+    const trainingDialogRef = useRef<TrainingDialogRef>(null);
+    const hintDialogRef = useRef<HintDialogRef>(null);
+    const addPicDialogRef = useRef<AddPicDialogRef>(null);
+
+    const resetAllPage = () => {
+        setTrainPassPage(1);
+        setTrainNgPage(1);
+        setValPassPage(1);
+        setValNgPage(1);
+    }
 
     const confirmAttribute: AttributeType = {
         title: 'Save changes',
@@ -125,9 +167,6 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
 
     const fetchPanelDataset = useCallback((exportId: string) => {
 
-        console.log('--- fetchPanelDataset ---')
-
-
         setIsLoading(true);
         fetch(panelDatasetAPI(exportId))
             .then((res) => res.json())
@@ -135,17 +174,19 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                 setPanelInfo(data.info);
                 setPanelDataset(data.data);
 
-                if (keys(data.data)[0]){
-                    const defaultComp=keys(data.data)[0];
+                console.log('--- info ---', data.info);
+                console.log('--- data ---', data.data);
+
+                if (keys(data.data)[0]) {
+                    const defaultComp = keys(data.data)[0];
                     setSelectComp(defaultComp)
                     setPanelDatasetSecond(data.data[defaultComp]);
-                    if (keys(data.data[defaultComp])[0]){
-                        const defaultLight=keys(data.data[defaultComp])[0];
+                    if (keys(data.data[defaultComp])[0]) {
+                        const defaultLight = keys(data.data[defaultComp])[0];
                         setSelectLight(defaultLight);
                         dispatch(setPanelDatasetThird(data.data[defaultComp][defaultLight]));
                     }
                 }
-                    
 
             })
             .catch((err) => {
@@ -156,17 +197,69 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
             .finally(() => setIsLoading(false));
     }, []);
 
+    const fetchPanelDatasetAsync = async (exportId: string) => {
+
+        console.log('--- fetch Panel Dataset Async---')
+
+        setIsLoading(true);
+        const res = await fetch(panelDatasetAPI(exportId));
+        const resJson = await res.json();
+        if (resJson.detail) {
+            //utilityRef.current.showErrorMessage(resJson.detail);
+            setIsLoading(false);
+            console.log('fetchPanelDatasetAsync error', resJson.detail);
+            return null;
+        }
+
+        setPanelInfo(resJson.info);
+        setPanelDataset(resJson.data);
+
+        setIsLoading(false);
+        return resJson.data;
+
+    };
+
     const SaveFetchPanelDataset = useCallback(
         (exportId: string) => {
             fetch(panelDatasetAPI(exportId))
                 .then((res) => res.json())
                 .then((data) => {
+
+                    console.log('--- data ---')
+                    console.log(data);
+
+
+
                     setPanelInfo(data.info);
                     setPanelDataset(data.data);
-                    if (selectComp) setPanelDatasetSecond(data.data[selectComp]);
-                    if (selectComp && selectLight) dispatch(setPanelDatasetThird(data.data[selectComp][selectLight]));
+
+
+                    console.log('--- selectComp ---', selectComp);
+                    console.log('--- selectLight ---', selectLight);
+
+                    if (data.data[selectComp]){
+                        if (selectComp) setPanelDatasetSecond(data.data[selectComp]);
+                        if (selectComp && selectLight) dispatch(setPanelDatasetThird(data.data[selectComp][selectLight]));
+                        
+                    }else{
+                        console.log('key')
+                        console.log(Object.keys(data.data)[0])
+                        const mySelectComp = Object.keys(data.data)[0]
+                        setSelectComp(mySelectComp);
+                        setPanelDatasetSecond(data.data[mySelectComp]);
+                        const mySelectLight = Object.keys(data.data[mySelectComp])[0];
+                        setSelectLight(mySelectLight);
+                        dispatch(setPanelDatasetThird(data.data[mySelectComp][mySelectLight]));
+                        dispatch(setClearList());
+                        
+                    }
+
+
+                   
                 })
                 .catch((err) => {
+
+                    console.log(err)
                     const msg = err?.response?.detail?.[0]?.msg || '';
                     const loc = err?.response?.detail?.[0]?.loc || [];
                     console.log(`API error: ${msg} [${loc.join(', ')}]`);
@@ -205,6 +298,15 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
 
         const removeItem = sourceList[source.index];
 
+        console.log('destType', destType);
+
+        if ((selectedList.includes(removeItem.image_uuid)) && (destType === 'GOLDEN')) {
+            if (selectedList.length > 1) {
+                setOpenWarningDialog(true);
+                return;
+            }
+        }
+
 
         if (selectedList.includes(removeItem.image_uuid)) {
             selectedList.forEach(function (myItem, myIndex) {
@@ -216,6 +318,8 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                 const item2 = find(newPanelDataset['train']?.['NG'] || [], { image_uuid: myItem });
                 if (item2) remove(newPanelDataset['train']?.['NG'] || [], { image_uuid: myItem });
                 const item3 = find(newPanelDataset['train']?.['GOLDEN'] || [], { image_uuid: myItem });
+
+
                 if (item3) remove(newPanelDataset['train']?.['GOLDEN'] || [], { image_uuid: myItem });
                 const item4 = find(newPanelDataset['train']?.['DELETE'] || [], { image_uuid: myItem });
                 if (item4) remove(newPanelDataset['train']?.['DELETE'] || [], { image_uuid: myItem });
@@ -224,6 +328,9 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                 const item6 = find(newPanelDataset['val']?.['NG'] || [], { image_uuid: myItem });
                 if (item6) remove(newPanelDataset['val']?.['NG'] || [], { image_uuid: myItem });
                 moveItem = (item1) ? item1 : (item2) ? item2 : (item3) ? item3 : (item4) ? item4 : (item5) ? item5 : (item6) ? item6 : null;
+
+                console.log('moveItem', moveItem);
+
 
                 if (moveItem) {
                     const pasteList = newPanelDataset[destTrainVal]?.[destType] || [];
@@ -240,7 +347,6 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
 
         } else {
             // 按之前的方式
-
             const [removeItem] = sourceList.splice(source.index, 1);
             // 在destination位置貼上被拖曳的元素
             const pasteList = newPanelDataset[destTrainVal]?.[destType] || [];
@@ -560,6 +666,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
         if (!exportId) return;
         if (!data) return;
 
+
         console.log('--- exportId ---', exportId);
 
         console.log('--- data ---', data);
@@ -599,6 +706,174 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
         setTempComp('');
         setTempLight('');
     };
+
+    const handleAddPic_xx = async (picId: string) => { };
+
+    const handleAddPic = async (picId: string) => {
+
+        if (!panelDataset) return;
+
+        if (!currentProject) return;
+
+        if (currentProject.export_uuid) {
+
+
+            const myData = await fetchPanelDatasetAsync(currentProject.export_uuid);
+
+            console.log('--- myData ---', myData);
+            console.log('--- Add Pic ---', picId);
+
+
+            let currentComp = '';
+            let currentLight = '';
+            let currentType = '';
+            let currentArea = '';
+
+            if (myData !== undefined) {
+                const compArr = Object.keys(myData);
+                compArr.map((comp) => {
+                    //console.log(panelDataset[comp]);
+                    const lightArr = Object.keys(myData[comp]);
+                    lightArr.map((light) => {
+                        //console.log(panelDataset[comp][light]);
+                        const myArr1 = myData[comp][light].train.PASS;
+                        myArr1?.map((item: any) => {
+                            if (item.image_uuid === picId) {
+
+                                currentComp = comp;
+                                currentLight = light;
+                                currentType = 'train';
+                                currentArea = 'PASS';
+                            }
+                        });
+                        const myArr2 = myData[comp][light].train.NG;
+                        myArr2?.map((item: any) => {
+                            if (item.image_uuid === picId) {
+
+                                currentComp = comp;
+                                currentLight = light;
+                                currentType = 'train';
+                                currentArea = 'NG';
+                            }
+                        });
+                        const myArr3 = myData[comp][light].train.GOLDEN;
+                        myArr3?.map((item: any) => {
+                            if (item.image_uuid === picId) {
+
+                                currentComp = comp;
+                                currentLight = light;
+                                currentType = 'train';
+                                currentArea = 'GOLDEN';
+                            }
+                        });
+                        const myArr4 = myData[comp][light].val.PASS;
+                        myArr4?.map((item: any) => {
+                            if (item.image_uuid === picId) {
+
+                                currentComp = comp;
+                                currentLight = light;
+                                currentType = 'val';
+                                currentArea = 'PASS';
+
+                            }
+                        });
+                        const myArr5 = myData[comp][light].val.NG;
+                        myArr5?.map((item: any) => {
+                            if (item.image_uuid === picId) {
+
+                                currentComp = comp;
+                                currentLight = light;
+                                currentType = 'val';
+                                currentArea = 'NG';
+                            }
+                        });
+                    })
+                })
+            }
+
+            console.log('currentComp', currentComp);
+            console.log('currentLight', currentLight);
+            console.log('currentType', currentType);
+            console.log('currentArea', currentArea);
+
+            if (currentComp !== '') {
+                setSelectComp(currentComp);
+                if (myData) {
+                    setPanelDatasetSecond(myData[currentComp]);
+
+                    console.log('--- second panel data ---')
+                    console.log(myData[currentComp])
+
+
+                    const myPanelDatasetThird = myData[currentComp][currentLight];
+                    dispatch(setPanelDatasetThird(myPanelDatasetThird));
+                    setSelectLight(currentLight);
+                    dispatch(setClearList());
+                    dispatch(setToggleItem(picId));
+
+                    if (myPanelDatasetThird) {
+                        if (currentType !== '' && currentArea !== '') {
+                            let totalItems = 0;
+                            let currentIndex = -1;
+                            if (currentType === 'train') {
+
+                                if (currentArea === 'PASS') {
+                                    totalItems = myPanelDatasetThird.train.PASS.length;
+                                    currentIndex = myPanelDatasetThird.train.PASS.findIndex((item: any) => item.image_uuid === picId);
+                                }
+                                if (currentArea === 'NG') {
+                                    totalItems = myPanelDatasetThird.train.NG.length;
+                                    currentIndex = myPanelDatasetThird.train.NG.findIndex((item: any) => item.image_uuid === picId);
+                                }
+
+                            }
+                            if (currentType === 'val') {
+                                if (currentArea === 'PASS') {
+                                    totalItems = myPanelDatasetThird.val.PASS.length;
+                                    currentIndex = myPanelDatasetThird.val.PASS.findIndex((item: any) => item.image_uuid === picId);
+                                }
+                                if (currentArea === 'NG') {
+                                    totalItems = myPanelDatasetThird.val.NG.length;
+                                    currentIndex = myPanelDatasetThird.val.NG.findIndex((item: any) => item.image_uuid === picId);
+                                }
+                            }
+                            const totalPage = Math.ceil(totalItems / NumPerPage);
+                            const currentPage = Math.ceil((currentIndex + 1) / NumPerPage);
+                            // console.log('totalItems', totalItems);
+                            // console.log('totalPage', totalPage);
+                            // console.log('currentIndex', currentIndex);
+                            // console.log('currentPage', currentPage);
+
+                            if (currentType === 'train') {
+                                if (currentArea === 'PASS') {
+                                    setTrainPassPage(currentPage);
+                                    dispatch(setToggleArea(1));
+                                }
+                                if (currentArea === 'NG') {
+                                    setTrainNgPage(currentPage);
+                                    dispatch(setToggleArea(2));
+                                }
+                            }
+                            if (currentType === 'val') {
+                                if (currentArea === 'PASS') {
+                                    setValPassPage(currentPage);
+                                    dispatch(setToggleArea(3));
+                                }
+                                if (currentArea === 'NG') {
+                                    setValNgPage(currentPage);
+                                    dispatch(setToggleArea(4));
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+    }
 
     const handleAreaSelectAll = (areaNum: number) => {
 
@@ -728,7 +1003,9 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
 
         setOpenTrainingDialog(true);
 
-        
+        trainingDialogRef.current?.SetOpen();
+
+
     };
 
 
@@ -759,7 +1036,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
         if (currentProject.export_uuid) fetchPanelDataset(currentProject.export_uuid);
     }, [currentProject.export_uuid, fetchPanelDataset]);
 
-    
+
     useEffect(() => {
         if (passPanelRef.current) passPanelRef.current.focus();
     }, []);
@@ -802,59 +1079,93 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                 <div className="attribute-page-container" >
                     <div className="title-container">
                         <span className="title-style">
-                            Classify Product of&nbsp;
                             <div className="title-name">
                                 <DivEllipsisWithTooltip>{currentProject.project_name}</DivEllipsisWithTooltip>
                             </div>
                         </span>
-                        <div className="lower-right-button-container">
-                            <span className="title-count">
-                                <span>
-                                    ( Train_PASS: <b className={!panelInfo?.train.PASS ? 'red-font' : ''}>{panelInfo?.train.PASS || 0}</b>、
-                                </span>
-                                <span>
-                                    Train_NG: <b className={!panelInfo?.train.NG ? 'red-font' : ''}>{panelInfo?.train.NG || 0}</b>、
-                                </span>
-                                <span>
-                                    Val_PASS: <b className={!panelInfo?.val.PASS ? 'red-font' : ''}>{panelInfo?.val.PASS || 0}</b>、
-                                </span>
-                                <span>
-                                    Val_NG: <b className={!panelInfo?.val.NG ? 'red-font' : ''}>{panelInfo?.val.NG || 0}</b> )
-                                </span>
-                            </span>
-                            <Button
-                                variant="contained"
-                                className="enlarge-button"
-                                sx={{ width: 160, fontSize: 16, textTransform: 'none', transition: 'transform 0.2s' }}
-                                onClick={() => ConvertPanelDataset(currentProject.project_uuid, currentProject.export_uuid)}
-                                disabled={!panelInfo?.train.PASS || !panelInfo?.train.NG || !panelInfo?.val.PASS || !panelInfo?.val.NG}
-                            >
-                                Convert
-                            </Button>
 
-                            <Button
-                                variant="contained"
-                                className="enlarge-button"
-                                sx={{ width: 160, fontSize: 16, textTransform: 'none', transition: 'transform 0.2s' }}
-                                onClick={() => OpenTrainingDialog(currentProject.project_uuid, currentProject.export_uuid)}
-                                disabled={false}
-                            >  
-                                Train
-                            </Button>
+                        <div className="title-count-container d-flex flex-row gap-1 align-items-center">
+                            <div className={`title-count${((panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0) <2) ? '-warnning' : ''} d-flex flex-row gap-3 align-items-center`}>
+                                <span>
+                                    Train_PASS: <span className={'black-font'}>{panelInfo?.train.PASS || 0}</span>
+                                </span>
+                                +
+                                <span>
+                                    Train_NG: <span className={'black-font'}>{panelInfo?.train.NG || 0}</span>
+                                </span>
+                                =
+                                <span>
+                                    Train_Total:<span className={((panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0) <2) ? 'red-font' : 'black-font'}>{(panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0)}</span>
+                                </span>
+                                <span>
+                                    {((panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0) <2) ?
+                                        <FontAwesomeIcon icon={faCircle} color="lightgray" style={{ width: 16 }} size="4x" />
+                                        :
+                                        <FontAwesomeIcon icon={faCircleCheck} color="green" style={{ width: 16 }} size="4x" />
+                                    }
+                                </span>
+                                {
+                                    (panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0) <2 &&
+                                    <span className="my-warnning-info">
+                                        <FontAwesomeIcon icon={faCircleInfo} color="orange" style={{ width: 16}} size="4x" />
+                                        <span>
+                                            Train PASS+NG need at least two.
+                                        </span>
+                                    </span>
+                                }
+                            </div>
+                            <div className={`title-count${((panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0) === 0) ? '-warnning' : ''} d-flex flex-row gap-3 align-items-center`}>
+                                <span>
+                                    Val_PASS: <span className={'black-font'}>{panelInfo?.val.PASS || 0}</span>
+                                </span>
+                                +
+                                <span>
+                                    Val_NG: <span className={'black-font'}>{panelInfo?.val.NG || 0}</span>
+                                </span>
+                                =
+                                <span>
+                                    Val_Total:<span className={((panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0) === 0) ? 'red-font' : 'black-font'}>{(panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0)}</span>
+                                </span>
+                                <span>
+                                    {((panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0) === 0) ?
+                                        <FontAwesomeIcon icon={faCircle} color="lightgray" style={{ width: 16 }} size="4x" />
+                                        :
+                                        <FontAwesomeIcon icon={faCircleCheck} color="green" style={{ width: 16 }} size="4x" />
+                                    }
+                                </span>
+                                {
+                                    (panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0) === 0 &&
+                                    <span className="my-warnning-info">
+                                        <FontAwesomeIcon icon={faCircleInfo} color="orange" style={{ width: 16, height: 16 }} size="4x" />
+                                        <span>
+                                            Val PASS+NG need at least one.
+                                        </span>
+                                    </span>
+                                }
+                                
+                            </div>
+                        </div>
+
+                        <div className="lower-right-button-container">
+
+                            <CustomButton name='view' text='Add' width={100} onClick={() => { addPicDialogRef.current?.SetOpen() }} />
+                            <CustomButton name='view' text='Convert' width={100} disabled={( (panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0) === 0)||((panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0) <2)} onClick={() => ConvertPanelDataset(currentProject.project_uuid, currentProject.export_uuid)} />
+                            <CustomButton name='view' text='Train' width={100} disabled={( (panelInfo?.val.PASS || 0) + (panelInfo?.val.NG || 0) === 0)||((panelInfo?.train.PASS || 0) + (panelInfo?.train.NG || 0) <2)} onClick={() => OpenTrainingDialog(currentProject.project_uuid, currentProject.export_uuid)} />
                         </div>
                     </div>
-                    <div className="attribute-page-content">
-                        <div className="component-container">
-                            <div className="component-title">Component</div>
-                            <div className="component-content">
+                    <div className="attribute-page-content" style={{ userSelect: 'none' }}>
+                        <div className="my-component-container">
+                            <div className="my-component-title">Component</div>
+                            <div className="my-component-content">
                                 {panelDataset &&
-                                    Object.keys(panelDataset).map((comp) => (
+                                    Object.keys(panelDataset).map((comp, idx) => (
                                         <div
                                             key={comp}
-                                            className={`component-item ${comp === selectComp ? 'component-item-selected' : ''}`}
+                                            className={`my-component-item-${(idx % 2 === 1) ? "1" : "2"} ${comp === selectComp ? 'my-component-item-selected' : ''}`}
                                             onClick={() => {
 
                                                 if (comp !== selectComp) {
+                                                    resetAllPage();
                                                     if (somethingChange) {
                                                         setOpenConfirmLeaveDialog(true);
                                                         setTempComp(comp);
@@ -866,50 +1177,49 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                         dispatch(setClearList());
 
                                                         setTempComp(comp);
-                                                       
+
                                                         // for default select first item    
-                                                        if (keys(panelDataset[comp])[0]){
-                                                            const defaultLight=keys(panelDataset[comp])[0];
+                                                        if (keys(panelDataset[comp])[0]) {
+                                                            const defaultLight = keys(panelDataset[comp])[0];
                                                             setSelectLight(defaultLight);
                                                             dispatch(setPanelDatasetThird(panelDataset[comp][defaultLight]));
                                                         }
-                                                        
+
                                                     }
                                                 }
                                             }}
                                         >
-                                            {/* //若需勾選時使用
-                          <input
-                          type="checkbox"
-                          name={comp}
-                          // value={data.path}
-                          checked={false}
-                          disabled={!getCheckStatus(panelDataset[comp])}
-                          onChange={() => {}}
-                        /> */}
-                                            <div className="component-text">
+
+                                            <div className="my-component-text">
                                                 <DivEllipsisWithTooltip>{comp}</DivEllipsisWithTooltip>
                                             </div>
-                                            {getCheckStatus(panelDataset[comp]) ? (
-                                                <FontAwesomeIcon icon={faCheck} color="green" size="lg" style={{ width: 18 }} />
-                                            ) : (
-                                                <FontAwesomeIcon icon={faBan} color="orange" style={{ width: 18 }} />
-                                            )}
+                                            {
+                                                (getCheckStatusNum(panelDataset[comp]) === 1) ?
+                                                    <FontAwesomeIcon icon={faCircleCheck} color="green" style={{ width: 16 }} size="4x" />
+                                                    : (getCheckStatusNum(panelDataset[comp]) === 2) ?
+                                                        <FontAwesomeIcon icon={faCircle} color="lightgray" style={{ width: 16 }} size="4x" />
+                                                        : <FontAwesomeIcon icon={faCircleMinus} color="orange" style={{ width: 16 }} size="4x" />
+
+
+
+
+                                            }
                                         </div>
                                     ))}
                             </div>
                         </div>
-                        <div className="component-container">
-                            <div className="component-title">Light</div>
-                            <div className="component-content">
+                        <div className="my-component-container">
+                            <div className="my-component-title">Light</div>
+                            <div className="my-component-content">
                                 {panelDatasetSecond &&
-                                    Object.keys(panelDatasetSecond).map((lightSource) => (
+                                    Object.keys(panelDatasetSecond).map((lightSource, idx) => (
                                         <div
                                             key={lightSource}
-                                            className={`component-item ${lightSource === selectLight ? 'component-item-selected' : ''}`}
+                                            className={`my-component-item-${(idx % 2 === 1) ? "1" : "2"} ${lightSource === selectLight ? 'my-component-item-selected' : ''}`}
                                             onClick={() => {
 
                                                 if (lightSource !== selectLight) {
+                                                    resetAllPage();
                                                     if (somethingChange) {
                                                         console.log('something change')
                                                         setOpenConfirmLeaveDialog(true);
@@ -925,82 +1235,65 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                         >
                                             <div className="component-text">{lightSource}</div>
                                             {panelDatasetSecond[lightSource].check ? (
-                                                <FontAwesomeIcon icon={faCheck} color="green" size="lg" style={{ width: 18 }} />
+                                                <FontAwesomeIcon icon={faCircleCheck} color="green" style={{ width: 16 }} size="4x" />
                                             ) : (
-                                                <FontAwesomeIcon icon={faBan} color="orange" style={{ width: 18 }} />
+                                                <FontAwesomeIcon icon={faCircle} color="lightgray" style={{ width: 16 }} size="4x" />
                                             )}
                                         </div>
                                     ))}
                             </div>
                         </div>
-                        <div className="attribute-container">
-                            <div className="attribute-title">
+                        <div className="my-attribute-container">
+                            <div className="my-attribute-title">
 
                                 Attribute
-                                {panelDatasetThird && (
+                                {/* {panelDatasetThird && (
                                     <span style={{ fontSize: 14, fontWeight: 400 }}> ※Press alt (or option) key and click to check full size image.</span>
-                                )}
+                                )} */}
 
                                 {panelDatasetThird && (
-                                    <div style={{ marginBottom: '3px' }}>
-                                        <Button
-                                            variant="outlined"
-                                            className="enlarge-button"
-                                            sx={{
-                                                width: 'auto',
-                                                height: 30,
-                                                fontSize: 14,
-                                                padding: '2px 6px',
-                                                marginRight: '6px',
-                                                textTransform: 'none',
-                                                transition: 'transform 0.2s',
-                                            }}
-                                            onClick={() => {
-                                                const trainPass = panelDatasetThird.train.PASS.length;
-                                                const valPass = panelDatasetThird.val.PASS.length;
-                                                const trainNg = panelDatasetThird.train.NG.length;
-                                                const valNg = panelDatasetThird.val.NG.length;
-                                                setTrainPass(Math.floor((trainPass / (trainPass + valPass)) * 100) || 0);
-                                                setValPass(100 - Math.floor((trainPass / (trainPass + valPass)) * 100) || 0);
-                                                setTrainNg(Math.floor((trainNg / (trainNg + valNg)) * 100) || 0);
-                                                setValNg(100 - Math.floor((trainNg / (trainNg + valNg)) * 100) || 0);
-                                                setOpenRatioDialog(true);
-                                            }}
-                                        >
-                                            Ratio distribution
-                                        </Button>
-                                        <Button
-                                            variant="contained"
-                                            className="enlarge-button"
-                                            sx={{
-                                                width: 100,
-                                                height: 30,
-                                                fontSize: 14,
-                                                boxShadow: 'none',
-                                                padding: '2px 6px',
-                                                textTransform: 'none',
-                                                transition: 'transform 0.2s',
-                                            }}
-                                            onClick={() => setOpenConfirmDialog(true)}
-                                        >
-                                            Save
-                                        </Button>
+                                    <div className='d-flex flex-row gap-2'>
+                                        <CustomButton name='button-type-2' text='Shortcut key hint' width={140} height={28} onClick={() => { hintDialogRef.current?.SetOpen() }} />
+                                        <CustomButton name='button-type-2' text='Ratio distribution' width={140} height={28} onClick={() => {
+                                            const trainPass = panelDatasetThird.train.PASS.length;
+                                            const valPass = panelDatasetThird.val.PASS.length;
+                                            const trainNg = panelDatasetThird.train.NG.length;
+                                            const valNg = panelDatasetThird.val.NG.length;
+                                            setTrainPass(Math.floor((trainPass / (trainPass + valPass)) * 100) || 0);
+                                            setValPass(100 - Math.floor((trainPass / (trainPass + valPass)) * 100) || 0);
+                                            setTrainNg(Math.floor((trainNg / (trainNg + valNg)) * 100) || 0);
+                                            setValNg(100 - Math.floor((trainNg / (trainNg + valNg)) * 100) || 0);
+                                            setOpenRatioDialog(true);
+                                        }} />
+                                        <CustomButton name='button-type-1' text='Save' width={100} height={28} onClick={() => setOpenConfirmDialog(true)} />
+
                                     </div>
                                 )}
                             </div>
                             <DragDropContext onDragEnd={onDragEnd}>
-                                    {panelDatasetThird && (                          
-                                    <div className="attribute-content">
-                                        <div className="train-val-container">
-                                            <div className="train-val-wrapper">
-                                                <div className="train-val-title">
+                                {panelDatasetThird && (
+                                    <div className="my-attribute-content">
+                                        <div className="my-train-val-container">
+                                            <div className="my-train-val-wrapper">
+                                                <div className="my-train-val-title" >
+                                                    
                                                     Train
-                                                    {trainNum < 2 && <span> (Pass + ng need at least two.)</span>}
+                                                    {
+                                                        trainNum < 1 && 
+                                                        <span className="my-warnning-info" style={{position:'relative',top:0,left:5}}>
+                                                        <FontAwesomeIcon icon={faCircleInfo} color="orange" style={{ width: 16}} size="4x" />
+                                                        Pass + NG need at least one.
+                                                        </span>
+                                                       
+                                                    }
+                                                    
+                                                    
                                                 </div>
-                                                <div className="pass-ng-container">
-                                                    <div style={{ width: '50%' }}>
-                                                        <div className={trainNum < 2 ? 'pass-ng-wrapper-warn' : 'pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(1))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(1) }} style={{ backgroundColor: (selectedArea === 1) ? '#D9FFFF' : '#FFFFFF' }}>
-                                                            <div className="pass-ng-title" ref={passPanelRef}>PASS ({panelDatasetThird.train.PASS.length})</div>
+                                                <div className="my-pass-ng-container">
+                                                    <div style={{ width: '50%', position: 'relative' }}>
+                                                        <div className={trainNum < 1 ? 'my-pass-ng-wrapper-warn' : 'my-pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(1))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(1) }} style={{ backgroundColor: (selectedArea === 1) ? '#D9FFFF' : '#FAFAFD' }}>
+
+                                                            <CustomTab label="PASS" value={panelDatasetThird.train.PASS.length} warn={(trainNum < 1) ? true : false} focus={(selectedArea === 1) ? true : false}></CustomTab>
 
                                                             <Droppable droppableId={"train_PASS"}>
                                                                 {(provided) => (
@@ -1020,17 +1313,19 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                                 )}
                                                             </Droppable>
 
+                                                            <div className='my-page-row'>
+                                                                <Stack spacing={2}>
+                                                                    <Pagination count={Math.ceil(panelDatasetThird.train.PASS.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setTrainPassPage(v)} page={trainPassPage} />
+                                                                </Stack>
+                                                            </div>
+                                                        </div>
 
-                                                        </div>
-                                                        <div className='my-page-row'>
-                                                            <Stack spacing={2}>
-                                                                <Pagination count={Math.ceil(panelDatasetThird.train.PASS.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setTrainPassPage(v)} page={trainPassPage} />
-                                                            </Stack>
-                                                        </div>
                                                     </div>
-                                                    <div style={{ width: '50%' }}>
-                                                        <div className={trainNum < 2 ? 'pass-ng-wrapper-warn' : 'pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(2))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(2) }} style={{ backgroundColor: (selectedArea === 2) ? '#D9FFFF' : '#FFFFFF' }}>
-                                                            <div className="pass-ng-title">NG ({panelDatasetThird.train.NG.length})</div>
+                                                    <div style={{ width: '50%', position: 'relative' }}>
+                                                        <div className={trainNum < 1 ? 'my-pass-ng-wrapper-warn' : 'my-pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(2))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(2) }} style={{ backgroundColor: (selectedArea === 2) ? '#D9FFFF' : '#FAFAFD' }}>
+
+                                                            <CustomTab label="NG" value={panelDatasetThird.train.NG.length} warn={(trainNum < 1) ? true : false} focus={(selectedArea === 2) ? true : false}></CustomTab>
+
                                                             <Droppable droppableId="train_NG">
                                                                 {(provided) => (
                                                                     <div ref={provided.innerRef} {...provided.droppableProps} className="img-container">
@@ -1046,24 +1341,32 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                                     </div>
                                                                 )}
                                                             </Droppable>
+                                                            <div className='my-page-row'>
+                                                                <Stack spacing={2}>
+                                                                    <Pagination count={Math.ceil(panelDatasetThird.train.NG.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setTrainNgPage(v)} page={trainNgPage} />
+                                                                </Stack>
+                                                            </div>
                                                         </div>
-                                                        <div className='my-page-row'>
-                                                            <Stack spacing={2}>
-                                                                <Pagination count={Math.ceil(panelDatasetThird.train.NG.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setTrainNgPage(v)} page={trainNgPage} />
-                                                            </Stack>
-                                                        </div>
+
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="train-val-wrapper">
-                                                <div className="train-val-title">
+                                            <div className="my-train-val-wrapper">
+                                                <div className="my-train-val-title">
                                                     Val
-                                                    {valNum < 1 && <span> (Pass + ng need at least one.)</span>}
+                                                    {/* {valNum < 1 &&
+                                                        <div className='my-info-tag'>
+                                                            <FontAwesomeIcon icon={faCircleInfo} color="orange" style={{ width: 16, height: 16 }} size="4x" />
+                                                            <div style={{ paddingTop: 2 }}> PASS+NG need at least one.</div>
+                                                        </div>
+                                                    } */}
                                                 </div>
-                                                <div className="pass-ng-container">
-                                                    <div style={{ width: '50%' }}>
-                                                        <div className={valNum < 1 ? 'pass-ng-wrapper-warn' : 'pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(3))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(3) }} style={{ backgroundColor: (selectedArea === 3) ? '#D9FFFF' : '#FFFFFF' }}>
-                                                            <div className="pass-ng-title">PASS ({panelDatasetThird.val.PASS.length})</div>
+                                                <div className="my-pass-ng-container">
+                                                    <div style={{ width: '50%', position: 'relative' }}>
+                                                        <div className={valNum < 1 ? 'my-pass-ng-wrapper' : 'my-pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(3))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(3) }} style={{ backgroundColor: (selectedArea === 3) ? '#D9FFFF' : '#FAFAFD' }}>
+
+                                                            <CustomTab label="PASS" value={panelDatasetThird.val.PASS.length} warn={(valNum < 1) ? false : false} focus={(selectedArea === 3) ? true : false}></CustomTab>
+
                                                             <Droppable droppableId="val_PASS">
                                                                 {(provided) => (
                                                                     <div ref={provided.innerRef} {...provided.droppableProps} className="img-container">
@@ -1079,17 +1382,19 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                                     </div>
                                                                 )}
                                                             </Droppable>
+                                                            <div className='my-page-row'>
+                                                                <Stack spacing={2}>
+                                                                    <Pagination count={Math.ceil(panelDatasetThird.val.PASS.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setValPassPage(v)} page={valPassPage} />
+                                                                </Stack>
+                                                            </div>
                                                         </div>
-                                                        <div className='my-page-row'>
-                                                            <Stack spacing={2}>
-                                                                <Pagination count={Math.ceil(panelDatasetThird.val.PASS.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setValPassPage(v)} page={valPassPage} />
-                                                            </Stack>
-                                                        </div>
-                                                    </div>
-                                                    <div style={{ width: '50%' }}>
-                                                        <div className={valNum < 1 ? 'pass-ng-wrapper-warn' : 'pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(4))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(4) }} style={{ backgroundColor: (selectedArea === 4) ? '#D9FFFF' : '#FFFFFF' }}>
 
-                                                            <div className="pass-ng-title">NG ({panelDatasetThird.val.NG.length})</div>
+                                                    </div>
+                                                    <div style={{ width: '50%', position: 'relative' }}>
+                                                        <div className={valNum < 1 ? 'my-pass-ng-wrapper' : 'my-pass-ng-wrapper'} onClick={(e) => dispatch(setToggleArea(4))} onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(4) }} style={{ backgroundColor: (selectedArea === 4) ? '#D9FFFF' : '#FAFAFD' }}>
+
+                                                            <CustomTab label="NG" value={panelDatasetThird.val.NG.length} warn={(valNum < 1) ? false : false} focus={(selectedArea === 4) ? true : false}></CustomTab>
+
                                                             <Droppable droppableId="val_NG">
                                                                 {(provided) => (
                                                                     <div ref={provided.innerRef} {...provided.droppableProps} className="img-container">
@@ -1105,31 +1410,37 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                                     </div>
                                                                 )}
                                                             </Droppable>
+                                                            <div className='my-page-row'>
+                                                                <Stack spacing={2}>
+                                                                    <Pagination count={Math.ceil(panelDatasetThird.val.NG.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setValNgPage(v)} page={valNgPage} />
+                                                                </Stack>
+                                                            </div>
                                                         </div>
-                                                        <div className='my-page-row'>
-                                                            <Stack spacing={2}>
-                                                                <Pagination count={Math.ceil(panelDatasetThird.val.NG.length / NumPerPage)} variant="outlined" shape="rounded" onChange={(e, v) => setValNgPage(v)} page={valNgPage} />
-                                                            </Stack>
-                                                        </div>
+
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="golden-delete-container">
-                                            <div className="golden-wrapper">
-                                                <div className="train-val-title">
+                                        <div className="my-golden-delete-container">
+                                            <div className="my-golden-wrapper">
+                                                <div className="my-train-val-title">
                                                     Golden
-                                                    {goldenNum < 1 && <span> (Need one.)</span>}
+                                                    {goldenNum < 1 &&
+                                                        <div className='my-info-tag'>
+                                                            <FontAwesomeIcon icon={faCircleInfo} color="orange" style={{ width: 16, height: 16 }} size="4x" />
+                                                            <div style={{ paddingTop: 2 }}> Need one.</div>
+                                                        </div>
+                                                    }
                                                 </div>
                                                 <Droppable droppableId="train_GOLDEN">
                                                     {(provided) => (
                                                         <div
                                                             ref={provided.innerRef}
                                                             {...provided.droppableProps}
-                                                            className={`flex-row-center ${goldenNum < 1 ? 'img-container-shadow-warn' : 'img-container-shadow'}`}
+                                                            className={`flex-row-center ${goldenNum < 1 ? 'my-golden-img-container-shadow-warn' : 'my-golden-img-container-shadow'}`}
                                                             onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(5) }}
                                                             onClick={(e) => dispatch(setToggleArea(5))}
-                                                            style={{ backgroundColor: (selectedArea === 5) ? '#D9FFFF' : '#FFFFFF' }}
+                                                            style={{ backgroundColor: (selectedArea === 5) ? '#D9FFFF' : '#FAFAFD' }}
                                                         >
                                                             {panelDatasetThird?.train?.GOLDEN &&
                                                                 panelDatasetThird.train.GOLDEN.map((img, index) => (
@@ -1143,16 +1454,17 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                     )}
                                                 </Droppable>
                                             </div>
-                                            <div className="delete-wrapper" >
-                                                <div className="train-val-title" >
+                                            <div className="my-delete-wrapper" >
+                                                <div className="my-train-val-title" >
                                                     Delete
                                                 </div>
+
                                                 <Droppable droppableId="train_DELETE">
                                                     {(provided) => (
-                                                        <div ref={provided.innerRef} {...provided.droppableProps} className="img-container-shadow"
+                                                        <div ref={provided.innerRef} {...provided.droppableProps} className="my-img-container-shadow"
                                                             onDoubleClick={(e) => { e.stopPropagation(); handleAreaSelectAll(6) }}
                                                             onClick={(e) => dispatch(setToggleArea(6))}
-                                                            style={{ backgroundColor: (selectedArea === 6) ? '#D9FFFF' : '#FFFFFF' }}>
+                                                            style={{ backgroundColor: (selectedArea === 6) ? '#D9FFFF' : '#FAFAFD' }}>
                                                             {panelDatasetThird?.train?.DELETE &&
                                                                 panelDatasetThird.train.DELETE.map((img, index) => (
                                                                     ((index >= (trainDeletePage - 1) * NumPerPage) && (index < (trainDeletePage * NumPerPage))) &&
@@ -1165,11 +1477,13 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                                                         </div>
                                                     )}
                                                 </Droppable>
-                                                <div className='my-page-row'>
+                                                <div className='my-page-del-row'>
                                                     <Stack spacing={2}>
                                                         <Pagination count={Math.ceil((panelDatasetThird.train.DELETE ? (panelDatasetThird.train.DELETE.length) : 0) / NumPerPage)} variant="outlined" shape="rounded" siblingCount={0} boundaryCount={0} onChange={(e, v) => setTrainDeletePage(v)} page={trainDeletePage} />
                                                     </Stack>
                                                 </div>
+
+
                                             </div>
                                         </div>
                                     </div>
@@ -1199,13 +1513,20 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                             adjustRatio,
                         }}
                     />
-                    <TrainingDialog
-                        {...{
-                            openTrainingDialog,
-                            setOpenTrainingDialog,
-                            setPageKey,
-                        }}
-                    /> 
+                    <TrainingDialog {...{
+                        currentProject,
+                        setPageKey,
+                    }}
+                        ref={trainingDialogRef}
+                    />
+                    <HintDialog
+                        ref={hintDialogRef}
+                    />
+                    <AddPicDialog
+                        onAddPic={handleAddPic}
+                        currentProject={currentProject}
+                        ref={addPicDialogRef}
+                    />
                     <WarningDialog
                         openWarningDialog={openWarningDialog}
                         setOpenWarningDialog={setOpenWarningDialog}
@@ -1215,6 +1536,7 @@ const SetAttributePage = (props: SetAttributePagePageProps) => {
                 </div>
 
             </ThemeProvider>
+            <Utility ref={utilityRef} />
         </>
     );
 };

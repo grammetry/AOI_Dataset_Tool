@@ -49,9 +49,9 @@ To learn React, check out the [React documentation](https://reactjs.org/).
 
 ### Start up service
 sudo docker run -it \
---name dataset-tool-website \
--e NGINX_PORT=8003 \
+--name dataset-tool-website-v106 \
+-e NGINX_PORT=3006 \
 -e BACKEND_PORT=8080 \
--e BACKEND_SERVER=172.16.92.130 \
+-e BACKEND_SERVER=127.0.0.1 \
 --net host \
--t innodiskorg/dataset-tool-website:v100
+-t innodiskorg/dataset-tool-website:v106

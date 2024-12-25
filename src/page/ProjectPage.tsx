@@ -14,20 +14,22 @@ import ConfirmDialog from '../dialog/ConfirmDialog';
 import UpsertProjectDialog from '../dialog/UpsertProjectDialog';
 
 import { AttributeType, PageKeyType, ProjectDataType } from './type';
+import CustomButton from '../components/Buttons/CustomButton';
+import CustomTooltip from '../components/Tooltips/CustomTooltip';
 
 declare module '@mui/material/styles' {
     interface Theme {
-      status: {
-        danger: string;
-      };
+        status: {
+            danger: string;
+        };
     }
     // allow configuration using `createTheme`
     interface ThemeOptions {
-      status?: {
-        danger?: string;
-      };
+        status?: {
+            danger?: string;
+        };
     }
-  }
+}
 
 export const theme = createTheme({
     palette: {
@@ -39,12 +41,9 @@ export const theme = createTheme({
         },
     },
     typography: {
-        fontFamily: 'Google Noto Sans TC',
+        fontFamily: 'Roboto',
     },
-    status: {
-        danger: 'orange',
-    }
-    
+
 });
 
 const calculateWidth = (first: boolean, second: boolean, third: boolean, fifth: boolean) => {
@@ -172,38 +171,22 @@ const ProjectPage = (props: ProjectPageProps) => {
         <ThemeProvider theme={theme}>
             <div className="container">
                 <div className="title-container first-title-container">
-                    <div className="title-style">Project Page</div>
+                    <div className="title-style">All Projects</div>
                     <div className='d-flex flex-row gap-2'>
-                        <div style={{paddingTop:4}}>
-                            <Button
-                                variant="outlined"
-                                className="enlarge-button"
-                                sx={{
-                                    width: 100,
-                                    fontSize: 16,
-                                    padding: '2px 6px',
-                                    textTransform: 'none',
-                                    boxShadow: '0px 2px 2px 0px #00000010',
-                                    transition: 'transform 0.2s',
-                                }}
-                                onClick={() => setPageKey('TrainPage')}
-                            >
-                                Train Page
-                            </Button>
-
+                        <div style={{ paddingTop: 4 }}>
 
                         </div>
                         <div onClick={handleClickAddBtn} style={{ cursor: 'pointer' }}>
-                            <Tooltip enterDelay={500} enterNextDelay={500} title="Add project." arrow>
-                                {/* <FontAwesomeIcon className="icon-button" icon={faFolderPlus} size="10x" color="#ed1b23" /> */}
-                                <CreateNewFolderIcon sx={{
-                                    color: '#ed1b23',
-                                    fontSize: '40px',
-                                    '&:hover': {
-                                        color: '#A51218'
-                                    }
-                                }} />
-                            </Tooltip>
+
+
+                            {/* <Button
+                                variant="contained"
+                                style={{ width: 96, height: 36, fontSize: 16, padding: '4px 10px', textTransform: 'none' }}
+                                onClick={handleClickAddBtn}
+                            >
+                                Add
+                            </Button> */}
+                            <CustomButton name="view" text="Add" width={100} height={32} onClick={handleClickAddBtn} />
                         </div>
                     </div>
 
@@ -233,56 +216,85 @@ const ProjectPage = (props: ProjectPageProps) => {
                                             )}px)`,
                                         }}
                                     >
-                                        <DivEllipsisWithTooltip>{project.project_name}</DivEllipsisWithTooltip>
+                                        <CustomTooltip title={project.project_name}>
+                                            <div className="my-note text-truncate">{project.project_name}</div>
+                                        </CustomTooltip>
+
                                     </div>
                                     <div className="icon-button-container">
-                                        {project.project_status?.copy_to_local.status === 'running' && (
+                                        {/* {project.project_status?.copy_to_local.status === 'running' && (
                                             <Tooltip enterDelay={500} enterNextDelay={500} title="Loading copy to local." arrow>
                                                 <div className="loading-icon" />
                                             </Tooltip>
+                                        )} */}
+                                        {project.project_status?.copy_to_local.status === 'running' && (
+                                            <CustomTooltip title={"Loading copy to local."}>
+                                                <div className="loading-icon" />
+                                            </CustomTooltip>
                                         )}
-                                        {project.project_status?.generate_zip?.status === 'running' && (
+                                        {/* {project.project_status?.generate_zip?.status === 'running' && (
                                             <Tooltip enterDelay={500} enterNextDelay={500} title="Generating zip." arrow>
                                                 <div className="loading-icon" />
                                             </Tooltip>
+                                        )} */}
+                                        {project.project_status?.generate_zip?.status === 'running' && (
+                                            <CustomTooltip title={"Generating zip."}>
+                                                <div className="loading-icon" />
+                                            </CustomTooltip>
                                         )}
-                                        {project.project_status?.init && (
+                                        {/* {project.project_status?.init && (
                                             <Tooltip enterDelay={500} enterNextDelay={500} title="Already converted." arrow>
                                                 <FontAwesomeIcon icon={faCheckToSlot} color="#444" />
                                             </Tooltip>
+                                        )} */}
+                                        {project.project_status?.init && (
+                                            <CustomTooltip title={"Already converted."}>
+                                                <FontAwesomeIcon icon={faCheckToSlot} color="#444" />
+                                            </CustomTooltip>
                                         )}
-                                        {!project.project_status?.init && !!project.export_uuid && (
+                                        {/* {!project.project_status?.init && !!project.export_uuid && (
                                             <Tooltip enterDelay={500} enterNextDelay={500} title="Already exported." arrow>
                                                 <FontAwesomeIcon icon={faFileCircleCheck} color="#444" />
                                             </Tooltip>
+                                        )} */}
+                                        {!project.project_status?.init && !!project.export_uuid && (
+                                            <CustomTooltip title={"Already exported."}>
+                                                <FontAwesomeIcon icon={faFileCircleCheck} color="#444" />
+                                            </CustomTooltip>
                                         )}
                                     </div>
                                 </div>
                                 <div className="project-img">
-                                    <img src={projectCoverAPI(project.project_uuid)} alt="project img" />
+                                    <img src={projectCoverAPI(project.project_uuid)} alt="project img" className='my-project-img' />
                                 </div>
-                                <div>note</div>
+                                <div>Note</div>
                                 <div className="note-container">
-                                    <pre>{project.annotation}</pre>
+                                    <CustomTooltip title={project.annotation}>
+                                        <div className="my-note text-truncate">{project.annotation}</div>
+                                    </CustomTooltip>
+
                                 </div>
                                 <div className="button-container">
-                                    <Button
+                                    {/* <Button
                                         variant="contained"
                                         style={{ width: 96, height: 36, fontSize: 16, padding: '4px 10px', textTransform: 'none' }}
                                         onClick={(e) => handleClickEditBtn(e, project)}
                                     >
                                         Edit
-                                    </Button>
-                                    <Button
+                                    </Button> */}
+                                    <CustomButton name="view" text="Edit" width={96} height={32} onClick={(e: MouseEvent<HTMLButtonElement>) => handleClickEditBtn(e, project)} />
+                                    {/* <Button
                                         variant="contained"
                                         style={{ width: 96, height: 36, fontSize: 16, padding: '4px 10px', textTransform: 'none' }}
                                         onClick={(e) => handleClickDeleteBtn(e, project)}
                                     >
                                         Delete
-                                    </Button>
+                                    </Button> */}
+                                    <CustomButton name="view" text="Delete" width={96} height={32} onClick={(e: MouseEvent<HTMLButtonElement>) => handleClickDeleteBtn(e, project)} />
+
                                     <Button
                                         variant="outlined"
-                                        style={{ width: 36, height: 36, minWidth: 36, boxShadow: '0px 2px 2px 0px #00000010' }}
+                                        style={{ width: 32, height: 32, minWidth: 32, boxShadow: '0px 2px 2px 0px #00000010' }}
                                         onClick={(e) => handleClickMoreBtn(e, project)}
                                     >
                                         <FontAwesomeIcon icon={faEllipsis} />

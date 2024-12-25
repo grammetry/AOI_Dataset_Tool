@@ -3,16 +3,18 @@ import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import { theme } from '../page/ProjectPage';
 import { AttributeType } from '../page/type';
+import CustomButton from '../components/Buttons/CustomButton';
 
 const useStyles = makeStyles()(() => ({
   customDialog: {
-    borderRadius: 4,
     '.MuiPaper-root': {
       width: '50%',
       height: '60%',
       maxWidth: 500,
       maxHeight: 360,
       backgroundColor: '#FFFCF9',
+      //backgroundColor: 'red',
+      borderRadius: 12,
     },
   },
 }));
@@ -36,15 +38,7 @@ const WarningDialog = (props: WarningDialogProps) => {
             <div className="dialog-content">
               <div className="dialog-text" dangerouslySetInnerHTML={{ __html: warningAttribute.desc }} />
               <div className="lower-right-button-container">
-                <Button
-                  type="submit"
-                  variant="contained"
-                  className="enlarge-button"
-                  sx={{ width: 100, fontSize: 16, padding: '2px 6px', textTransform: 'none', transition: 'transform 0.2s' }}
-                  onClick={() => setOpenWarningDialog(false)}
-                >
-                  OK
-                </Button>
+                <CustomButton name='view' text='OK' width={100} onClick={() => setOpenWarningDialog(false)}></CustomButton>
               </div>
             </div>
           

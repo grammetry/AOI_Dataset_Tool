@@ -1,0 +1,20 @@
+#!/bin/bash  
+
+image_name='innodiskorg/dataset-tool-website:v107'
+container_name='dataset-tool-website'
+
+echo "(1) build the website"
+npm run build
+echo "(2) stop the container"
+sudo docker stop "$container_name" &>/dev/null || true
+echo "(3) remove the container"
+sudo docker rm "$container_name" &>/dev/null || true
+echo "(4) remove the image"
+sudo docker rmi "$image_name" 
+echo "(5) run docker-compose"
+sudo docker-compose -f docker-compose-pro.yml up -d
+echo "(6) prune the docker images"
+sudo docker image prune -f
+echo "(7) Steps completed"
+
+

@@ -1,0 +1,12 @@
+#!/bin/bash  
+
+SERVICE_NAME='dataset-tool-website'
+IMAGE_NAME='innodiskorg/dataset-tool-website:v107'
+echo "(1) stop container - $SERVICE_NAME"  
+sudo docker stop ${SERVICE_NAME}
+echo "(2) remove container - $SERVICE_NAME"  
+sudo docker rm ${SERVICE_NAME}
+echo "(3) remove image - $IMAGE_NAME"  
+sudo docker rmi ${IMAGE_NAME}
+echo "Operation Complete" 
+

@@ -1,0 +1,28 @@
+{
+    "hot_database": "active",
+    "cold_database": "active",
+    "cleardog": "active",
+    "watchdog": "active",
+    "70285be4-43a9-4a87-8dde-479c2d82bdac": {
+        "server_container": {
+            "a477ffcd53": "active"
+        },
+        "client_container": {
+            "116a0ee33d": "active",
+            "abc6dd646f": "active",
+            "08d4375700": "active",
+            "7b3b521efd": "active"
+        }
+    },
+    "59005508-5cf3-416d-ab6e-364db9b649d8": {
+        "server_container": {
+            "7a4d5ea2cf": "active"
+        },
+        "client_container": {
+            "31dcad6ce6": "active",
+            "c13a70eeaa": "active",
+            "dbe859e3db": "active",
+            "dd438554ca": "active"
+        }
+    }
+}

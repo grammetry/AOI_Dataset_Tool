@@ -27,7 +27,6 @@ import TabList from '@mui/joy/TabList';
 import Tab from '@mui/joy/Tab';
 import TabPanel from '@mui/joy/TabPanel';
 import JoyButton from '@mui/joy/Button';
-import '@fontsource/inter';
 
 import { copyToLocalAPI, dataSourceAPI } from '../APIPath';
 import DivEllipsisWithTooltip from '../components/DivEllipsisWithTooltip';
@@ -35,11 +34,14 @@ import { Tooltip } from '@mui/material';
 import ProgressDialog from '../dialog/ProgressDialog';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ReactSelectSingle from '../components/Dropdowns/ReactSelectSingle';
+import CustomInput, { CustomInputRef } from '../components/Inputs/CustomInput';
+import CustomButton from '../components/Buttons/CustomButton';
 import { theme } from './ProjectPage';
 
 import MonthSelector, { MonthSelectorRef } from '../components/Dropdowns/MonthSelector';
 import ModelSelector, { ModelSelectorRef } from '../components/Dropdowns/ModelSelector';
-//import CustomCheckBox from '../components/CheckBoxs/CustomCheckBox';
+import ServerSelector from '../components/Dropdowns/ServerSelector';
+import CustomDatePicker, { CustomDatePickerRef } from '../components/DatePickers/CustomDatePicker';
 
 
 import { PageKeyType, ProjectDataType, FileType, PathListType, OptionType } from './type';
@@ -76,6 +78,7 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
     const [isFetchingSecond, setIsFetchingSecond] = useState(false);
     const [isFetchingThird, setIsFetchingThird] = useState(false);
     const [searchString, setSearchString] = useState('');
+    const [currentType, setCurrentType] = useState<string>('0');
 
     const [monthOption, setMonthOption] = useState<OptionType[]>([{ value: '', label: '' }]);
 
@@ -87,7 +90,7 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
     // const [fromDate, setFromDate] = useState<string>('2023-06-01');
     // const [toDate, setToDate] = useState<string>('2023-06-10');
 
-    const [modelName, setModelName] = useState<string>('4DM24DK');
+    const [modelName, setModelName] = useState<string>('');
 
     const [openProgressDialog, setOpenProgressDialog] = useState(false);
     const [progressMessage, setProgressMessage] = useState('Loading...');
@@ -104,6 +107,9 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
 
     const monthSelectorRef = useRef<MonthSelectorRef>(null);
     const modelSelectorRef = useRef<ModelSelectorRef>(null);
+    const fromDateRef = useRef<CustomDatePickerRef>(null);
+    const toDateRef = useRef<CustomDatePickerRef>(null);
+    const modelNameRef = useRef<CustomInputRef>(null);
 
 
 
@@ -480,52 +486,52 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
 
         const req1 = await fetch(dataSourceAPI(myDate))
         const statusCode1 = req1.status;
-           
-        if (statusCode1===200) {
+
+        if (statusCode1 === 200) {
             const res1 = await req1.json()
             const pathArr = flatMap(res1, item2 => {
                 return item2.path;
             })
-    
+
             pathArr.map(async function (item) {
-    
+
                 const req2 = await fetch(dataSourceAPI(item));
                 const statusCode2 = req2.status;
                 const res2 = await req2.json();
-                
-    
-                if (statusCode2===200) {
-        
-                 
+
+
+                if (statusCode2 === 200) {
+
+
                     const pathArr = flatMap(res2, item2 => {
                         return item2.path;
                     })
-        
+
                     pathArr.forEach((item) => {
-    
+
                         if (item) {
-    
+
                             const modelName = item.split("/")[2];
-    
+
                             if (modelName.indexOf(myModel) >= 0) {
                                 const myItem = { "date": item.split("/")[0], "station": item.split("/")[1], "model": item.split("/")[2] };
                                 setPathListSearch(oldArray => [...oldArray, myItem]);
                             }
                         }
-        
+
                     })
-    
+
                 }
-    
-              
-    
-    
+
+
+
+
             });
         }
-           
 
 
-       
+
+
 
 
 
@@ -660,7 +666,7 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                 myArr2.push({ "value": myItem, "label": myItem.substring(0, 4) + '-' + myItem.substring(4, 6) });
             })
             setMonthOption(myArr2);
-           
+
         }
 
     }, [currentPathListFirst]);
@@ -757,7 +763,17 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
 
         console.log('search by name')
 
-        if (modelName.trim() === '') {
+        const modeNameValue = modelNameRef.current?.getInputValue();
+
+        console.log(modeNameValue)
+
+        if (!modeNameValue) {
+            dispatch(setMessage('Model name is empty!'));
+            dispatch(setShow(true));
+            return;
+        }
+
+        if (modeNameValue.trim() === '') {
 
             dispatch(setMessage('Model name is empty!'));
             dispatch(setShow(true));
@@ -770,14 +786,17 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
         setProgressPercent(0);
         setPathListSearch([]);
 
-        const theFromDate = moment(fromDate, "YYYYMMDD");
-        const theToDate = moment(toDate, "YYYYMMDD");
+        const myFromDate = fromDateRef.current?.getInputValue();
+        const myToDate = toDateRef.current?.getInputValue();
+
+        const theFromDate = moment(myFromDate, "YYYYMMDD");
+        const theToDate = moment(myToDate, "YYYYMMDD");
         const totalDays = theToDate.diff(theFromDate, 'days') + 1;
 
         let currentCount = 1;
         for (let i = theFromDate; theToDate.diff(theFromDate, 'days') >= 0; theFromDate.add(1, 'days')) {
 
-            await fetchDataSingleDay(i.format("YYYYMMDD"), modelName);
+            await fetchDataSingleDay(i.format("YYYYMMDD"), modeNameValue);
             setProgressMessage(i.format("YYYY-MM-DD"));
             setProgressPercent(Math.round(currentCount / totalDays * 100));
             currentCount++;
@@ -796,7 +815,7 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                     <div className="dataSource-wrapper">
                         <div className="title-container">
                             <span className="title-style">
-                                Choose Product of&nbsp;
+
                                 <Tooltip enterDelay={500} enterNextDelay={500} title={currentProject.project_name} arrow>
                                     <div className='my-project-name'>
                                         {currentProject.project_name}
@@ -830,108 +849,128 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                         </div>
 
 
-                        <div className='d-flex flex-column mt-2'>
-                            <CssVarsProvider>
-                                <Tabs aria-label="Basic tabs"
-                                    defaultValue={0}
-                                    sx={{
-                                        backgroundColor: 'transparent'
-                                    }}
-                                    onChange={()=>{setPathListSearch([]);}}
-                                >
-                                    <TabList >
-                                        <Tab>
-                                            <ListItemDecorator>
-                                                <DatasetIcon
-                                                    sx={{
-                                                        color: '#ed1b23',
-                                                        fontSize: '30px'
-                                                    }} />
-                                            </ListItemDecorator>
-                                            <div className='my-tag'>Search by model</div>
-                                        </Tab>
-                                        <Tab>
-                                            <ListItemDecorator>
-                                                <DatasetIcon sx={{
-                                                    color: '#ed1b23',
-                                                    fontSize: '30px'
-                                                }} />
-                                            </ListItemDecorator>
-                                            <div className='my-tag'>Search by month</div>
 
-                                        </Tab>
-                                    </TabList>
-                                    
-                                    <TabPanel value={0}>
-                                        <div className="d-flex flex-row mt-2 gap-2">
-                                           
-                                            <DatePicker  
-                                                dateFormat="yyyy-MM-dd" 
-                                                className='form-control form-control-solid w-250px' 
-                                                selected={new Date(fromDate)} 
-                                                onChange={(date) => {setFromDate(date?date.toISOString().slice(0, 10):'');setToDate(date?date.toISOString().slice(0, 10):'')}} 
-                                            />
 
-                                            <DatePicker  
-                                                dateFormat="yyyy-MM-dd" 
-                                                className='form-control form-control-solid w-250px' 
-                                                selected={new Date(toDate)} 
-                                                onChange={(date) => setToDate(date?date.toISOString().slice(0, 10):'')} 
-                                            />
-                                           
+                        <div className='my-parameter-container'>
+                            <div className='col-md-12 p-0 d-flex flex-row justify-content-between'>
 
-                                            
-                                            <Input placeholder='Model name here...' sx={{ height: '38px' }} value={modelName}
-                                                onChange={(event: ChangeEvent<HTMLInputElement>) => setModelName(event.target.value)}
-                                            />
 
-                                            <JoyButton sx={{
-                                                backgroundColor: '#ed1b23',
-                                                fontFamily: 'Google Noto Sans TC',
-                                                "&:hover": {
-                                                    backgroundColor: '#A51218'
-                                                },
-                                            }}
-                                                onClick={() => searchByName()}
-                                            >Search</JoyButton>
+                                <div className='d-flex flex-row gap-2'>
+                                    <div className='d-flex flex-column mb-2'>
+                                        <div className='my-input-title py-1'>
+                                            Search Type
                                         </div>
-
-                                    </TabPanel>
-                                    <TabPanel value={1}>
-                                        <div className="d-flex flex-row mt-2 gap-2">
-                                            <MonthSelector options={monthOption} onChange={(item: OptionType | null) => { console.log(item); fetchDataMonth(item);setMonthSelectedOption(item); }} className="my-month-select" ref={monthSelectorRef} />
-                                            <ModelSelector options={modelOption} onChange={(item: OptionType | null) => { console.log(item); setDataSearch(item); }} className="my-model-select" ref={modelSelectorRef} />
+                                        <div>
+                                            <ServerSelector
+                                                width={200}
+                                                options={[{ value: '0', label: 'Search By Model' }, { value: '1', label: 'Search By Month' }]}
+                                                defaultValue={{ value: '0', label: 'Search By Model' }}
+                                                onChange={(item: OptionType) => {
+                                                    setCurrentType(item.value);
+                                                }}
+                                            />
                                         </div>
-                                    </TabPanel>
-                                </Tabs>
-                            </CssVarsProvider>
+                                    </div>
+                                    {
+                                        (currentType === '0') ?
+                                            <>
+                                                <div className='d-flex flex-column mb-2'>
+                                                    <div className='my-input-title py-1'>
+                                                        Begin Date
+                                                    </div>
+                                                    <div>
+                                                        <CustomDatePicker width={200} height={38} ref={fromDateRef}></CustomDatePicker>
+                                                    </div>
+                                                </div>
+                                                <div className='d-flex flex-column mb-2'>
+                                                    <div className='my-input-title py-1'>
+                                                        End Date
+                                                    </div>
+                                                    <div>
+                                                        <CustomDatePicker width={200} height={38} ref={toDateRef}></CustomDatePicker>
+                                                    </div>
+                                                </div>
+                                                <div className='d-flex flex-column mb-2'>
+                                                    <div className='my-input-title py-1'>
+                                                        Model Name
+                                                    </div>
+                                                    <div>
+                                                        <CustomInput defaultValue='' onChange={() => { }} width="300" height={38} placeholder="" ref={modelNameRef}></CustomInput>
+                                                    </div>
+                                                </div>
+                                            </>
+                                            :
+                                            <>
+
+                                                <div className='d-flex flex-column mb-2'>
+                                                    <div className='my-input-title py-1'>
+                                                        Month
+                                                    </div>
+                                                    <div>
+                                                        <MonthSelector width={200} options={monthOption} onChange={(item: OptionType | null) => { console.log(item); fetchDataMonth(item); setMonthSelectedOption(item); }} ref={monthSelectorRef} />
+                                                    </div>
+                                                </div>
+
+                                                <div className='d-flex flex-column mb-2'>
+                                                    <div className='my-input-title py-1'>
+                                                        Model
+                                                    </div>
+                                                    <div>
+                                                        <ModelSelector width={400} options={modelOption} onChange={(item: OptionType | null) => { console.log(item); setDataSearch(item); }} ref={modelSelectorRef} />
+                                                    </div>
+                                                </div>
+
+
+                                            </>
+                                    }
+
+
+                                </div>
+                                <div>
+                                    {
+
+                                        (currentType === '0') ?
+                                            <div className='d-flex flex-column mb-2'>
+                                                <div className='my-input-title py-1'>
+                                                    &nbsp;
+                                                </div>
+                                                <div>
+                                                    <CustomButton name="view" text="Query" width={100} height={36} onClick={() => searchByName()}></CustomButton>
+                                                </div>
+                                            </div>
+                                            :
+                                            <div></div>
+
+                                    }
+
+                                </div>
+                            </div>
                         </div>
 
 
-
                         <div className="dataSource-content">
-                            <div className="dataSource-layer-container">
+                            <div className="my-dataSource-layer-container">
 
-                                <div className="second-title-container">
-                                    <span className="second-title-style">Candidate path</span>
+                                <div className="my-second-title-container">
+                                    <span className="my-second-title-style">Candidate Path</span>
                                     {
                                         pathListSearch.length > 0 &&
-                                        // ↓全選的時候變成deselect按鈕
-                                        selectedPathList.filter((path) => pathListSearch.map((data) => data.date + '/' + data.station + '/' + data.model).includes(path)).length ===
-                                        pathListSearch.length ?
-                                        (
+                                            // ↓全選的時候變成deselect按鈕
+                                            selectedPathList.filter((path) => pathListSearch.map((data) => data.date + '/' + data.station + '/' + data.model).includes(path)).length ===
+                                            pathListSearch.length ?
+                                            (
 
-                                            <Button
-                                                variant="contained"
-                                                className="enlarge-button"
-                                                sx={{ fontSize: 14, padding: '1px 12px', textTransform: 'none', transition: 'transform 0.2s' }}
-                                                onClick={() => handleSearchDeselectAll(pathListSearch)}
-                                            >
-                                                Deselect all
-                                            </Button>
+                                                <Button
+                                                    variant="contained"
+                                                    className="enlarge-button"
+                                                    sx={{ fontSize: 14, padding: '1px 12px', textTransform: 'none', transition: 'transform 0.2s' }}
+                                                    onClick={() => handleSearchDeselectAll(pathListSearch)}
+                                                >
+                                                    Deselect all
+                                                </Button>
 
-                                        ) : (
-                                           
+                                            ) : (
+
 
                                                 <Button
                                                     variant="contained"
@@ -943,14 +982,14 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                                 </Button>
 
 
-                                            
-                                        )
+
+                                            )
                                     }
                                 </div>
 
                                 <div className="dataSource-layer-wrapper">
 
-                                    <div className="dataSource-layer">
+                                    <div className="my-dataSource-layer">
                                         {isFetchingThird && (
                                             <div className="dataSource-overlay">
                                                 <div className="loading-icon" />
@@ -960,14 +999,14 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
 
 
                                         <div className='my-dataSource-head'>
-                                            <div className="my-talbe-th" style={{ width: '10%' }}>
+                                            <div className="my-table-th" style={{ width: '10%' }}>
                                                 {/* <CssVarsProvider>
                                                 <Checkbox />
                                             </CssVarsProvider> */}
                                             </div>
-                                            <div className="my-talbe-th" style={{ width: '20%' }}>Date</div>
-                                            <div className="my-talbe-th" style={{ width: '30%' }}>Station</div>
-                                            <div className="my-talbe-th" style={{ width: '40%' }}>Model</div>
+                                            <div className="my-table-th" style={{ width: '20%' }}>Date</div>
+                                            <div className="my-table-th" style={{ width: '30%' }}>Station</div>
+                                            <div className="my-table-th" style={{ width: '40%' }}>Model</div>
                                         </div>
 
                                         <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
@@ -976,12 +1015,12 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                                     pathListSearch.map((data, idx) => {
                                                         // const matchResult = data.path.match(/\/([^/]+)\/?$/);
                                                         return (
-                                                            <div key={idx}>
+                                                            <div key={idx} className={`my-row-${(idx % 2 === 1) ? "1" : "2"}`}>
                                                                 <label
-                                                                    className={`dataSource-item ${selectedPathList.findIndex((item) => item === data.date + '/' + data.station + '/' + data.model) > -1 && 'dataSource-item-selected'
+                                                                    className={`my-dataSource-item ${selectedPathList.findIndex((item) => item === data.date + '/' + data.station + '/' + data.model) > -1 && 'dataSource-item-selected'
                                                                         }`}
                                                                 >
-                                                                    <div style={{ width: '10%' }} className='my-talbe-td'>
+                                                                    <div style={{ width: '10%' }} className='my-table-td'>
                                                                         <input
                                                                             type="checkbox"
                                                                             name={data.date + '/' + data.station + '/' + data.model}
@@ -990,13 +1029,13 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                                                             onChange={() => handleChange(data.date + '/' + data.station + '/' + data.model)}
                                                                         />
                                                                     </div>
-                                                                    <div style={{ width: '20%' }} className='my-talbe-td'>
+                                                                    <div style={{ width: '20%' }} className='my-table-td'>
                                                                         <DivEllipsisWithTooltip>{data.date}</DivEllipsisWithTooltip>
                                                                     </div>
-                                                                    <div style={{ width: '30%' }} className='my-talbe-td'>
+                                                                    <div style={{ width: '30%' }} className='my-table-td'>
                                                                         <DivEllipsisWithTooltip>{data.station}</DivEllipsisWithTooltip>
                                                                     </div>
-                                                                    <div style={{ width: '40%' }} className='my-talbe-td'>
+                                                                    <div style={{ width: '40%' }} className='my-table-td'>
                                                                         <DivEllipsisWithTooltip>{data.model}</DivEllipsisWithTooltip>
                                                                     </div>
                                                                 </label>
@@ -1016,10 +1055,10 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                             </div>
 
 
-                            <div className="dataSource-layer-container">
+                            <div className="my-dataSource-layer-container">
 
-                                <div className="second-title-container">
-                                    <span className="second-title-style">Selected path</span>
+                                <div className="my-second-title-container">
+                                    <span className="my-second-title-style">Selected Path</span>
                                     <Button
                                         variant="contained"
                                         className="enlarge-button"
@@ -1031,33 +1070,33 @@ const ChooseProductPage = (props: ChooseProductPageProps) => {
                                 </div>
 
                                 <div className="dataSource-layer-wrapper">
-                                    <div className="dataSource-layer">
+                                    <div className="my-dataSource-layer">
                                         <div className='my-dataSource-head'>
-                                            <div className="my-talbe-th" style={{ width: '10%' }}>
+                                            <div className="my-table-th" style={{ width: '10%' }}>
                                                 {/* <CssVarsProvider>
                                                 <Checkbox />
                                             </CssVarsProvider> */}
                                             </div>
-                                            <div className="my-talbe-th" style={{ width: '20%' }}>Date</div>
-                                            <div className="my-talbe-th" style={{ width: '30%' }}>Station</div>
-                                            <div className="my-talbe-th" style={{ width: '40%' }}>Model</div>
+                                            <div className="my-table-th" style={{ width: '20%' }}>Date</div>
+                                            <div className="my-table-th" style={{ width: '30%' }}>Station</div>
+                                            <div className="my-table-th" style={{ width: '40%' }}>Model</div>
                                         </div>
 
                                         <div style={{ height: 'calc(100% - 60px)', overflow: 'auto' }}>
                                             {selectedPathList.map((path, index) => (
-                                                <div key={path} className="selected-path">
-                                                    <div style={{ width: '10%' }} className='my-talbe-td'>
+                                                <div key={path} className={`selected-path-${(index % 2 === 1) ? "1" : "2"}`}>
+                                                    <div style={{ width: '10%' }} className='my-table-td'>
                                                         <span className="delete-button" onClick={() => handleDelete(index)}>
                                                             <FontAwesomeIcon icon={faTrashCan} className="icon-button" color="#ed1b23" />
                                                         </span>
                                                     </div>
-                                                    <div style={{ width: '20%' }} className='my-talbe-td'>
+                                                    <div style={{ width: '20%' }} className='my-table-td'>
                                                         <DivEllipsisWithTooltip>{path.split("/")[0]}</DivEllipsisWithTooltip>
                                                     </div>
-                                                    <div style={{ width: '30%' }} className='my-talbe-td'>
+                                                    <div style={{ width: '30%' }} className='my-table-td'>
                                                         <DivEllipsisWithTooltip>{path.split("/")[1]}</DivEllipsisWithTooltip>
                                                     </div>
-                                                    <div style={{ width: '40%' }} className='my-talbe-td'>
+                                                    <div style={{ width: '40%' }} className='my-table-td'>
                                                         <DivEllipsisWithTooltip>{path.split("/")[2]}</DivEllipsisWithTooltip>
                                                     </div>
                                                 </div>

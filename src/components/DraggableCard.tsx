@@ -14,9 +14,39 @@ const DraggableCard = ({ item, index, isGolden, onHover, onShiftSelect }: { item
 
     const selectedList = useSelector(selectCurrentList).list;
 
-    const handleClick = (e: MouseEvent, img: string) => {
+    async function copyToClipboard(textToCopy:string) {
+        // Navigator clipboard api needs a secure context (https)
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(textToCopy);
+        } else {
+            // Use the 'out of viewport hidden text area' trick
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+                
+            // Move textarea out of the viewport so it's not visible
+            textArea.style.position = "absolute";
+            textArea.style.left = "-999999px";
+                
+            document.body.prepend(textArea);
+            textArea.select();
+    
+            try {
+                document.execCommand('copy');
+            } catch (error) {
+                console.error(error);
+            } finally {
+                textArea.remove();
+            }
+        }
+    }
+
+    const handleClick = async(e: MouseEvent, img: string) => {
 
         console.log('image click')
+        console.log(img);
+        //navigator.clipboard.writeText(img)
+
+        //await copyToClipboard(img);
 
         if (e.shiftKey) {
             console.log('shift key down')
@@ -44,10 +74,7 @@ const DraggableCard = ({ item, index, isGolden, onHover, onShiftSelect }: { item
         onHover(img);
     };
 
-    const handleMouseLeave = (e: MouseEvent, img: string) => {
-        console.log('mouse leave')
-    };
-
+  
     return (
         <>
 
@@ -62,8 +89,7 @@ const DraggableCard = ({ item, index, isGolden, onHover, onShiftSelect }: { item
                                     ref={provided.innerRef}
                                     className="my-image-gold-item"
                                     style={{ position: 'absolute',top:'4px',left:'4px'}}     
-                                    onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}
-                                    onMouseLeave={(e) => handleMouseLeave(e, item.image_uuid)}
+                                    onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}       
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                 >
@@ -83,7 +109,6 @@ const DraggableCard = ({ item, index, isGolden, onHover, onShiftSelect }: { item
                                     className="my-image-item"
                                     style={{ position: 'absolute',top:'4px',left:'4px'}}     
                                     onMouseOver={(e) => handleMouseOver(e, item.image_uuid)}
-                                    onMouseLeave={(e) => handleMouseLeave(e, item.image_uuid)}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                 >

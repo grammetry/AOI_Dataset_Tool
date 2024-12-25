@@ -1,13 +1,22 @@
 
 import { useEffect, useState, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import './page.scss';
-import { Button, createTheme, Menu, MenuItem, ThemeProvider, Tooltip } from '@mui/material';
+
 import Modal from '@mui/joy/Modal';
 import ModalDialog from '@mui/joy/ModalDialog';
-import { extendTheme } from '@mui/joy/styles';
+import { extendTheme, ThemeProvider } from '@mui/joy/styles';
+
+import YAML from 'yaml';
+import { faBan, faCheck, faTriangleExclamation, faSquareXmark, faSquareCheck, faSquareMinus, faSquare } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
 import { AttributeType, PageKeyType, ProjectDataType } from './type';
 import { SchedulerHeadContainer, SchedulerHeadWrapper, SchedulerBodyContainer, SchedulerBodyWrapper } from "./pageStyle";
-import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI, taoTrainStatusWS, taoEvaluateAPI, taoInferenceAPI, taoExportAPI, taoDownloadAPI } from '../APIPath';
+import { taoWorkspaceAPI, taoQuickTrainAPI, taoStartTrainAPI, taoTrainStatusWS, taoEvaluateAPI, taoInferenceAPI, taoTrainInfoIdAPI, taoDownloadAPI, taoDownloadYamlAPI } from '../APIPath';
+
+import { selectCurrentMessage } from '../redux/store/slice/currentMessage';
+
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap/js/dist/tab.js';
 import log from '../utils/console';
@@ -18,15 +27,15 @@ import CustomChart from '../components/Charts/CustomChart';
 import StatusButton from '../components/Buttons/StatusButton';
 import CustomButton from '../components/Buttons/CustomButton';
 import ExtendButton from '../components/Buttons/ExtendButton';
+import TrainWebSocket from '../components/WebSockets/TrainWebSocket';
 
-
-import ResultCard from '../components/Cards/ResultCard';
 import WebSocketUtility from '../components/WebSocketUtility.js';
 import Stack from '@mui/joy/Stack';
 import LinearProgress from '@mui/joy/LinearProgress';
 import moment from 'moment';
-import { filter, toArray, findIndex, isEqual, map, cloneDeep, sortBy, orderBy } from 'lodash-es';
-import { get, set } from 'lodash';
+import { filter, toArray, findIndex, isEqual, map, cloneDeep, sortBy, orderBy, set } from 'lodash-es';
+import { Train } from '@mui/icons-material';
+import { current } from '@reduxjs/toolkit';
 
 export const theme = extendTheme({
     palette: {
@@ -53,56 +62,124 @@ const TrainPage = (props) => {
     const [currentStep, setCurrentStep] = useState(0);
     const [currentProjectName, setCurrentProjectName] = useState('');
     const [currentPercent, setCurrentPercent] = useState(0);
+
+    const [showDetail, setShowDetail] = useState(false);
+    const [socketOpen, setSocketOpen] = useState(false);
+    const [showDeleteHistoryConfirm, setShowDeleteHistoryConfirm] = useState(false);
+    const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false);
+    const [currentDeleteItem, setCurrentDeleteItem] = useState('');
+
+    const [infoModelType, setInfoModelType] = useState('');
+    const [infoMargin, setInfoMargin] = useState('');
+    const [infoBatchSize, setInfoBatchSize] = useState('');
+    const [infoFpratioSampling, setInfoFpratioSampling] = useState('');
+    const [infoNumberOfEpochs, setInfoNumberOfEpochs] = useState('');
+    const [infoLearningRate, setInfoLearningRate] = useState('');
+    const [infoCheckPointInterval, setInfoCheckPointInterval] = useState('');
+
+    const [infoList, setInfoList] = useState([]);
+
+    // const [infoMargin,setInfoMargin]=useState('');
+
+
     const [totalStep, setTotalStep] = useState(200);
     const [currentUuid, setCurrentUuid] = useState(null);
 
     const [table1HeaderNoShadow, setTable1HeaderNoShadow] = useState(true);
     const [table2HeaderNoShadow, setTable2HeaderNoShadow] = useState(true);
 
-    const [showInferenceResultModal,setShowInferenceResultModal] = useState(false);
-
     const currentTableColumnWidth = [100, 470, 180, 220, 150];
-    const historyTableColumnWidth = [100, 400, 400, 150, 150];
+    //const historyTableColumnWidth = [100, 400, 400, 150, 150];
+
+    const historyTableColumnWidth = ['10%', '30%', '35%', '25%', '5%'];
 
     const [remainingTime, setRemainingTime] = useState('');
     const [startTime, setStartTime] = useState('');
 
     const [taskList, setTaskList] = useState([]);
     const [fetchList, setFetchList] = useState([]);
-    const [resultList, setResultList] = useState([]);
-    const [resultId, setResultId] = useState('');
-
     const [historyList, setHistoryList] = useState([]);
+
+    const [wsUrl, setWsUrl] = useState('');
+
+    const [currentTaskInfo, setCurrentTaskInfo] = useState('');
+
 
     const chartRef = useRef(null);
     const utilityRef = useRef(null);
+    const currentTabRef = useRef(null);
+    const historyTabRef = useRef(null);
 
-    const getTrainingList = () => {
+    const currentTaoEvaluateId = useSelector(selectCurrentMessage).currentTaoEvaluateId;
+    const currentTaoInferenceId = useSelector(selectCurrentMessage).currentTaoInferenceId;
+    const currentTaoExportId = useSelector(selectCurrentMessage).currentTaoExportId;
 
-        //utilityRef.current.ShowMessage('test');
+    const getTrainingList = async () => {
 
-        log('---- get training list ----')
 
-        fetch(taoStartTrainAPI, {
-            method: 'GET'
-        })
-        .then(response => response.json())
-        .then(data => {
+        //log('---- getTrainingList ----')
 
-            if (data.length === 0)
+
+        try {
+
+            const response = await fetch(taoStartTrainAPI, {
+                method: 'GET'
+            })
+            const data = await response.json();
+
+            console.log('task list')
+            console.log(data)
+
+            if (data.length === 0) {
                 setNoTask(true);
-            else
+            } else {
                 setNoTask(false);
-
-
-            console.log(data)            
-
+            }
             setFetchList(data);
 
-        });
+        } catch (error) {
 
+            utilityRef.current.showMessage('Get training list : ' + error.message);
 
+        }
     }
+
+    const getHistoryList = async () => {
+
+
+        try {
+
+            const response = await fetch(taoWorkspaceAPI, {
+                method: 'GET'
+            });
+            const data = await response.json();
+
+            console.log('history list')
+            console.log(data)
+
+            data.forEach((item, index) => {
+               
+                if (item.tao_model_status.completed===false){
+                    console.log('-----------------------------------------------------');
+                    console.log(item.tao_model_uuid);
+                    console.log('train='+item.tao_model_status.train.status[0])
+                    console.log('evaluate='+item.tao_model_status.evaluate.status[0])
+                    console.log('inference='+item.tao_model_status.inference.status[0])
+                    console.log('export='+item.tao_model_status.export.status[0])
+                }
+            });
+
+            const sortedData = orderBy(data, ['create_time'], ['desc']);
+
+            setHistoryList(sortedData);
+            //console.log(data)
+
+        } catch (error) {
+
+            utilityRef.current.showMessage('Get history list : ' + error.message);
+
+        }
+    };
 
     const handleUpdateStep = (myStep) => {
 
@@ -110,15 +187,28 @@ const TrainPage = (props) => {
 
     }
 
-    const handleDeleteTask = async (myTaskId, myProjectName) => {
+    const handleDeleteTask = async (myItem) => {
 
-        if (myTaskId !== '') {
+        console.log('handle delete task')
+        console.log(myItem);
+
+        setCurrentDeleteItem(myItem);
+        setShowDeleteTaskConfirm(true);
+
+    }
+
+
+    const handleDeleteTaskConfirm = async () => {
+
+        setShowDeleteTaskConfirm(false);
+
+        if (currentDeleteItem) {
 
             const myData = {};
-            myData.tao_model_uuid = myTaskId;
-            myData.force = "false";
+            myData.tao_model_uuid = currentDeleteItem.tao_model_uuid;
+            myData.force = true;
 
-            utilityRef.current.SetLoading(true);
+            utilityRef.current.setLoading(true);
 
             const response = await fetch(taoStartTrainAPI, {
                 method: 'DELETE',
@@ -130,10 +220,8 @@ const TrainPage = (props) => {
 
             const data = await response.json();
 
-            utilityRef.current.SetLoading(false);
-            
-            //console.log(data);
-            //setTaskList(data);
+            utilityRef.current.setLoading(false);
+
             getTrainingList();
 
 
@@ -147,14 +235,48 @@ const TrainPage = (props) => {
 
     }
 
-    const handleDeleteHistory = async (myTaoModelId) => {
+    const handleDetailTask = async (myTaskId, myProjectName) => {
 
-        if (myTaoModelId !== '') {
+        //viewTaskByModelId(myTaskId);
 
-            log(`delete history ${myTaoModelId}`)
+        console.log('handle detail task')
+        console.log(myTaskId, myProjectName);
+
+        const theTask = filter(historyList, function (myItem) { return myItem.tao_model_uuid == myTaskId });
+
+        if (theTask.length > 0) {
+
+            const myTask = theTask[0];
+            const myTrainStatus = myTask.tao_model_status;
+            log('myTrainStatus', myTrainStatus);
+            setCurrentTaskInfo(myTrainStatus);
+
+
+            log(myTrainStatus.upload_dataset.success)
+            setShowDetail(true);
+        } else {
+            setCurrentTaskInfo('');
+            utilityRef.current.showMessage('No more infomation found.');
+        }
+
+
+
+    }
+
+    const handleDeleteHistoryConfirm = async () => {
+
+        //log(`delete history ${myTaoModelId}`)
+        setShowDeleteHistoryConfirm(false);
+
+        if (currentDeleteItem.tao_model_uuid) {
+
+            log(`delete history ${currentDeleteItem.tao_model_uuid}`)
 
             const myData = {};
-            myData.tao_model_uuid = myTaoModelId;
+            myData.tao_model_uuid = currentDeleteItem.tao_model_uuid;
+
+            utilityRef.current.setLoading(true);
+
 
             const response = await fetch(taoWorkspaceAPI, {
                 method: 'DELETE',
@@ -165,6 +287,8 @@ const TrainPage = (props) => {
             });
 
             const data = await response.json();
+
+            utilityRef.current.setLoading(false);
             console.log(data);
             //setTaskList(data);
             getHistoryList();
@@ -172,66 +296,27 @@ const TrainPage = (props) => {
 
         }
 
+
+
     }
+
+    const handleDeleteHistory = async (myItem) => {
+
+        setCurrentDeleteItem(myItem);
+        setShowDeleteHistoryConfirm(true);
+
+    }
+
 
     const isFloat = (n) => {
         return parseFloat(n.match(/^-?\d*(\.\d+)?$/)) > 0;
     }
 
-    const getHistoryList = async () => {
 
-        const response = await fetch(taoWorkspaceAPI, {
-            method: 'GET'
-        });
-
-        const data = await response.json();
-        log('---- get history list ----')
-        console.log(data);
-        setHistoryList(data);
-
-    };
-
-    const getProjectName = async (myModelId) => {
-
-        let myProjectName = 'N/A';
-
-        const response = await fetch(taoWorkspaceAPI, {
-            method: 'GET'
-        });
-
-        let myData = await response.json();
-
-        log('---- myData ----')
-        console.log(myData)
-
-        const myIndex1 = findIndex(myData, function (myItem) { return myItem.tao_model_uuid == myModelId })
-        if (myIndex1 >= 0) {
-            const myProjectId = myData[myIndex1].project_uuid;
-            const myIndex2 = findIndex(props.projectData, function (myItem) { return myItem.project_uuid == myProjectId })
-            myProjectName = (myIndex2 >= 0) ? props.projectData[myIndex2].project_name : 'N/A';
-        }
-
-        return myProjectName;
-    }
-
-    const getProjectNameByProjectId = (myProjectId) => {
-
-        log('---- getProjectNameByProjectId ----' + myProjectId)
-
-        let myProjectName = 'N/A';
-
-        const myIndex1 = findIndex(projectData, function (myItem) { return myItem.project_uuid == myProjectId })
-
-        log('---- myIndex1 ----' + myIndex1)
-
-        if (myIndex1 >= 0) {
-            myProjectName = props.projectData[myIndex1].project_name;
-        }
-
-        return myProjectName;
-    }
 
     const getModelNameByModelId = (myModelId) => {
+
+        //console.log('myModelId='+myModelId);
 
         let myModelName = 'N/A';
         const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
@@ -243,413 +328,995 @@ const TrainPage = (props) => {
         return myModelName;
     }
 
+
+
     const getTrainStatus = async (uuid) => {
 
+        console.log(`-------------- getTrainStatus ${uuid} --------------------`);
+
         const wsurl = `${taoTrainStatusWS}?tao_model_uuid=${uuid}`;
-        //setShowLoadingModal(true);
-        //console.log(wsurl);
-        const websocket = new WebSocketUtility(wsurl);
-        websocket.setMessageCallback(async (message) => {
-
-
-            if (message.indexOf('Training finished successfully.') >= 0) {
-                websocket.stop();
-
-            } else {
-                const fromStr = message.indexOf('}, "details"') + 13;
-                const toStr = message.length - 1;
-                if (fromStr >= 0) {
-                    const myData = message.substring(fromStr, toStr).replaceAll('\\u2588', '');
-                    //console.log(myData);
-                    const myArr = myData.split('\\r');
-
-                    myArr.map((item, index) => {
-                        if (item.indexOf('Epoch') >= 0) {
-                            const myEpoch = item.substring(item.indexOf('Epoch') + 5, item.indexOf(':')).replaceAll(' ', '');
-                            const myInfo = item.substring(item.indexOf('train_loss='), item.length);
-                            let myTranLoss = '';
-                            if (myInfo.indexOf('train_loss=') >= 0) {
-                                myTranLoss = myInfo.substring(myInfo.indexOf('train_loss=') + 11, myInfo.length);
-                            }
-                            if (myTranLoss.indexOf(',') >= 0) {
-                                myTranLoss = myTranLoss.substring(0, myTranLoss.indexOf(','));
-                            }
-                            if (myTranLoss.indexOf(']') >= 0) {
-                                myTranLoss = myTranLoss.substring(0, myTranLoss.indexOf(']'));
-                            }
-                            let myValLoss = '';
-                            if (myInfo.indexOf('val_loss=') >= 0) {
-                                myValLoss = myInfo.substring(myInfo.indexOf('val_loss=') + 9, myInfo.length);
-                            }
-                            if (myValLoss.indexOf(']') >= 0) {
-                                myValLoss = myValLoss.substring(0, myValLoss.indexOf(']'));
-                            }
-
-
-                            setCurrentPercent((parseInt(myEpoch) + 1) / parseInt(totalStep) * 100);
-                            setCurrentStep(parseInt(myEpoch) + 1);
-
-                            if (chartRef.current) {
-
-                                if (isFloat(myTranLoss)) {
-                                    chartRef.current.updateChart1Line1Data(parseInt(myEpoch) + 1, parseFloat(myTranLoss));
-                                }
-
-                                if (isFloat(myValLoss)) {
-                                    chartRef.current.updateChart1Line2Data(parseInt(myEpoch) + 1, parseFloat(myValLoss));
-                                }
+        console.log('wsurl')
+        console.log(wsurl)
+        setWsUrl(wsurl);
 
 
 
-                            }
-
-                        }
-                    })
-                }
-            }
-
-
-        });
-
-        websocket.start();
 
     }
+
+    const handleLastMessage = (lastMessage) => {
+
+        //if (!message) return;
+
+        //console.log(message)
+
+        const message = lastMessage.data;
+
+        // if (message.indexOf('run the training container') >= 0) {
+        //     setSocketOpen(false);
+        //     //websocket.stop();
+
+        //     setTimeout(() => {
+
+        //         console.log(`restart websocket ${uuid}`)
+        //         getTrainStatus(uuid);
+        //     }, "1000");
+        // }
+
+
+        if (message.indexOf('Training finished successfully.') >= 0) {
+            // websocket.stop();
+
+        } else {
+            const fromStr = message.indexOf('}, "details"') + 13;
+            const toStr = message.length - 1;
+            if (fromStr >= 0) {
+                const myData = message.substring(fromStr, toStr).replaceAll('\\u2588', '');
+                //console.log(myData);
+                const myArr = myData.split('\\r');
+
+                myArr.map((item) => {
+
+                    // console.log(`index=${index}`);
+                    //console.log(item);
+
+                    if (item.indexOf('Epoch') >= 0) {
+                        const myEpoch = item.substring(item.indexOf('Epoch') + 5, item.indexOf(':')).replaceAll(' ', '');
+                        const myInfo = item.substring(item.indexOf('train_loss='), item.length);
+                        let myTranLoss = '';
+                        if (myInfo.indexOf('train_loss=') >= 0) {
+                            myTranLoss = myInfo.substring(myInfo.indexOf('train_loss=') + 11, myInfo.length);
+                        }
+                        if (myTranLoss.indexOf(',') >= 0) {
+                            myTranLoss = myTranLoss.substring(0, myTranLoss.indexOf(','));
+                        }
+                        if (myTranLoss.indexOf(']') >= 0) {
+                            myTranLoss = myTranLoss.substring(0, myTranLoss.indexOf(']'));
+                        }
+                        let myValLoss = '';
+                        if (myInfo.indexOf('val_loss=') >= 0) {
+                            myValLoss = myInfo.substring(myInfo.indexOf('val_loss=') + 9, myInfo.length);
+                        }
+                        if (myValLoss.indexOf(']') >= 0) {
+                            myValLoss = myValLoss.substring(0, myValLoss.indexOf(']'));
+                        }
+
+
+
+                        setCurrentStep(parseInt(myEpoch) + 1);
+
+                        if (chartRef.current) {
+
+                            if (isFloat(myTranLoss)) {
+                                chartRef.current.updateChart1Line1Data(parseInt(myEpoch) + 1, parseFloat(myTranLoss));
+                            }
+
+                            if (isFloat(myValLoss)) {
+                                chartRef.current.updateChart1Line2Data(parseInt(myEpoch) + 1, parseFloat(myValLoss));
+                            }
+
+
+
+                        }
+
+                    }
+                })
+            }
+        }
+
+
+
+
+    }
+
+
+    const doTrain = async (myModelId) => {
+
+        console.log(`doTrain ${myModelId}`);
+
+        const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
+        if (myIndex1 >= 0) {
+
+            const myTrainStatus = historyList[myIndex1].tao_model_status.train.success;
+
+            if (!myTrainStatus) {
+
+                try {
+                    log('try train model')
+
+                    utilityRef.current.setLoading(true);
+
+                    const response = await fetch(taoStartTrainAPI, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ "tao_model_uuid": myModelId }),
+                    });
+
+                    const data = await response.json();
+
+                    utilityRef.current.setLoading(false);
+
+                    if (data.detail) {
+                        utilityRef.current?.showErrorMessage(data.detail);
+                        return;
+                    }
+
+                    if (data.message) {
+                        utilityRef.current.showMessage(data.message);
+                    }
+
+                    getHistoryList();
+
+                } catch (err) {
+
+                    console.log(err);
+                    utilityRef.current.setLoading(false);
+
+                }
+
+            }
+
+        };
+
+    };
+
 
     const doEvaluate = async (myModelId) => {
 
         log(`doEvaluate ${myModelId}`);
 
         const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
-        if (myIndex1>=0) {
-            
+        if (myIndex1 >= 0) {
+
             const myTrainStatus = historyList[myIndex1].tao_model_status.train.status;
 
             if (myTrainStatus) {
-                
+
                 try {
                     log('try evaluate model')
 
-                    utilityRef.current.SetLoading(true);
+                    utilityRef.current.setLoading(true);
 
                     const response = await fetch(taoEvaluateAPI, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({"tao_model_uuid": myModelId}),
+                        body: JSON.stringify({ "tao_model_uuid": myModelId }),
                     });
 
                     const data = await response.json();
 
-                    utilityRef.current.SetLoading(false);
-                    console.log(data);
+                    utilityRef.current.setLoading(false);
+
+                    if (data.detail) {
+                        utilityRef.current?.showErrorMessage(data.detail);
+                        return;
+                    }
+
+                    if (data.message) {
+                        utilityRef.current.showMessage(data.message);
+                    }
+
                     getHistoryList();
-                    
+
                 } catch (err) {
-                    const msg = err?.response?.detail?.[0]?.msg || '';
-                    const loc = err?.response?.detail?.[0]?.loc || [];
-                    console.log(`API error: ${msg} [${loc.join(', ')}]`);
-                    utilityRef.current.SetLoading(false);
-                    
+
+                    console.log(err);
+                    utilityRef.current.setLoading(false);
+
                 }
 
             }
-          
+
         };
 
     };
 
-    const getProjectIdByDatasetId = (myId)=>{
+    const getProjectIdByDatasetId = (myId) => {
 
         console.log(projectData)
 
-        let myProjectId='';
+        let myProjectId = '';
         const myIndex1 = findIndex(projectData, function (myItem) { return myItem.dataset_uuid == myId })
-        if (myIndex1>=0) {
-            myProjectId=projectData[myIndex1].project_uuid;
+        if (myIndex1 >= 0) {
+            myProjectId = projectData[myIndex1].project_uuid;
         }
         return myProjectId;
     }
 
-    const doInference = async (myModelId) => {
+    const doInference = async (myModelId, myModelName) => {
 
         log(`doInference ${myModelId}`)
 
         const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
-        if (myIndex1>=0) {
-            
-            const myEvaluateStatus = historyList[myIndex1].tao_model_status.evaluate.status;
-            const myInferenceStatus = historyList[myIndex1].tao_model_status.inference.status;
-            const myDatasetId = historyList[myIndex1].dataset_uuid;
+        if (myIndex1 >= 0) {
 
-            log('myDatasetId:'+myDatasetId)
+
+            const myEvaluateStatus = historyList[myIndex1].tao_model_status.evaluate.status;
+            const myInferenceStatus = historyList[myIndex1].tao_model_status.inference.success;
+            const myDatasetId = historyList[myIndex1].dataset_uuid;
+            const myExportId = historyList[myIndex1].export_uuid;
 
             const myProjectId = getProjectIdByDatasetId(myDatasetId);
-            log('myProjectId:'+myProjectId)
 
-            log('item data')
-            console.log(historyList[myIndex1])
+            if (myInferenceStatus) {
 
-            if (myInferenceStatus){
+                utilityRef.current.setCurrentTaoModelId(myModelId);
+                utilityRef.current.setCurrentTaoModelName(myModelName);
+                utilityRef.current.setCurrentExportId(myExportId);
+                setPageKey('InferenceResultPage');
 
-                try {
-
-                    utilityRef.current.SetLoading(true);
-
-                    log(`get inference result [tao_model_uuid] : ${myModelId}`)
-                    const response = await fetch(`${taoInferenceAPI}/result?tao_model_uuid=${myModelId}`, {
-                        method: 'GET',
-                    });
-
-                    const data = await response.text();
-                    const dataArr=data.split('\n');
-                    let resultArr=[];
-                    dataArr.map((item,index)=>{
-                        //console.log(item);
-
-                        if (index>0){
-                            const lineArr=item.split(',');
-                            //console.log(lineArr);
-                            if (lineArr.length<3) return;
-                            const compName=lineArr[0].substring(0,lineArr[0].indexOf('/'));
-                            //log(`compName=${compName}`);
-                            const lightSource=lineArr[0].substring(lineArr[0].lastIndexOf('/')+1,lineArr[0].length);
-                            //log(`lightSource=${lightSource}`);
-                            const label=lineArr[2];
-                            //log(`label=${label}`);
-                            const uuidList=lineArr[3].split('_');
-                            //console.log(uuidList);
-                            const goldenUuid=uuidList[1];
-                            //log(`goldenUuid=${goldenUuid}`);
-                            const imageUuid=uuidList[2];
-                            //log(`imageUuid=${imageUuid}`);
-                            const score=lineArr[4];
-                            //log(`score=${score}`);
-
-                            let myData={};
-                            myData.compName=compName;
-                            myData.lightSource=lightSource;
-                            myData.label=label; 
-                            myData.goldenUuid=goldenUuid;
-                            myData.imageUuid=imageUuid;
-                            myData.score=parseFloat(score);
-                            resultArr.push(myData);
-                        }
-                    });
-
-
-                    let resultArrSort = orderBy(resultArr, ['score'],['desc']);
-
-                    utilityRef.current.SetLoading(false);
-
-
-                    setResultList(resultArrSort);
-                    setResultId(myModelId);
-                    setShowInferenceResultModal(true);
-
-                    
-                   
-                    
-                } catch (err) {
-                    console.log(err)
-                    const msg = err?.response?.detail?.[0]?.msg || '';
-                    const loc = err?.response?.detail?.[0]?.loc || [];
-                    console.log(`API error: ${msg} [${loc.join(', ')}]`);
-                    utilityRef.current.SetLoading(false);
-
-                }
-
-            }else{
+            } else {
                 if (myEvaluateStatus) {
-                
+
                     try {
                         log('try evaluate model')
-                        utilityRef.current.SetLoading(true);
+                        utilityRef.current.setLoading(true);
                         const response = await fetch(taoInferenceAPI, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({"tao_model_uuid": myModelId}),
+                            body: JSON.stringify({ "tao_model_uuid": myModelId }),
                         });
-    
+
                         const data = await response.json();
-                        console.log(data);
-                        utilityRef.current.SetLoading(false);
+                        utilityRef.current.setLoading(false);
+
+                        if (data.detail) {
+                            utilityRef.current?.showErrorMessage(data.detail);
+                            return;
+                        }
+
+                        if (data.message) {
+                            utilityRef.current.showMessage(data.message);
+                        }
+
                         getHistoryList();
-                        
+
                     } catch (err) {
                         const msg = err?.response?.detail?.[0]?.msg || '';
                         const loc = err?.response?.detail?.[0]?.loc || [];
                         console.log(`API error: ${msg} [${loc.join(', ')}]`);
-                        utilityRef.current.SetLoading(false);
+                        utilityRef.current.setLoading(false);
 
-                        
+
                     }
-    
+
                 }
             }
 
-          
-          
+
+
         };
 
     };
 
-    const handleLabelToggle = (uuid) => {
-        log('handleLabelToggle===>',uuid)
-        let resultArr = cloneDeep(resultList);
-        const myIndex = findIndex(resultArr, function (myItem) { return myItem.imageUuid == uuid });
-        if (myIndex>=0){
-            resultArr[myIndex].label=(resultArr[myIndex].label==='PASS')?'NG':'PASS';
-            setResultList(resultArr);
+    const doExport = async (myModelId) => {
+
+        log(`doExport ${myModelId}`)
+
+        const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
+        if (myIndex1 >= 0) {
+            const myExportStatus = historyList[myIndex1].tao_model_status.export.success;
+
+            console.log('myExportStatus',myExportStatus)
+            if (myExportStatus){
+                window.location.href = `${taoDownloadAPI}?tao_model_uuid=${myModelId}`;
+            }
+            
+
         }
+
+        // const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId })
+        // if (myIndex1 >= 0) {
+
+
+        //     const myEvaluateStatus = historyList[myIndex1].tao_model_status.evaluate.status;
+        //     const myInferenceStatus = historyList[myIndex1].tao_model_status.inference.success;
+        //     const myDatasetId = historyList[myIndex1].dataset_uuid;
+        //     const myExportId = historyList[myIndex1].export_uuid;
+
+        //     const myProjectId = getProjectIdByDatasetId(myDatasetId);
+
+        //     if (myInferenceStatus) {
+
+        //         utilityRef.current.setCurrentTaoModelId(myModelId);
+        //         utilityRef.current.setCurrentExportId(myExportId);
+        //         setPageKey('InferenceResultPage');
+
+        //     } else {
+        //         if (myEvaluateStatus) {
+
+        //             try {
+        //                 log('try evaluate model')
+        //                 utilityRef.current.setLoading(true);
+        //                 const response = await fetch(taoInferenceAPI, {
+        //                     method: 'POST',
+        //                     headers: {
+        //                         'Content-Type': 'application/json',
+        //                     },
+        //                     body: JSON.stringify({ "tao_model_uuid": myModelId }),
+        //                 });
+
+        //                 const data = await response.json();
+        //                 utilityRef.current.setLoading(false);
+
+        //                 if (data.detail) {
+        //                     utilityRef.current?.showErrorMessage(data.detail);
+        //                     return;
+        //                 }
+
+        //                 if (data.message) {
+        //                     utilityRef.current.showMessage(data.message);
+        //                 }
+
+        //                 getHistoryList();
+
+        //             } catch (err) {
+        //                 const msg = err?.response?.detail?.[0]?.msg || '';
+        //                 const loc = err?.response?.detail?.[0]?.loc || [];
+        //                 console.log(`API error: ${msg} [${loc.join(', ')}]`);
+        //                 utilityRef.current.setLoading(false);
+
+
+        //             }
+
+        //         }
+        //     }
+
+
+
+        // };
+
     };
 
-    const handleDownload = async () => {
-        log('handleDownload '+resultId)
-        //setShowInferenceResultModal(false);
-
-        try {
-            log('try evaluate model')
-            const response1 = await fetch(taoExportAPI, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({"tao_model_uuid": resultId}),
-            });
-
-            const data1 = await response1.json();
-            console.log(data1);
-
-            window.location.href = `${taoDownloadAPI}?tao_model_uuid=${resultId}`;
-
-           
-            
-            
-        } catch (err) {
-
-            console.log(err)
-            // const msg = err?.response?.detail?.[0]?.msg || '';
-            // const loc = err?.response?.detail?.[0]?.loc || [];
-            // console.log(`API error: ${msg} [${loc.join(', ')}]`);
-            
-        }
-    
-    }
 
     const viewTaskByModelId = async (myModelId) => {
-            
-            log(`viewTaskByModelId ${myModelId}`)
-    
-            const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId });
 
-            if (myIndex1<0) {
+        log(`viewTaskByModelId ${myModelId}`)
 
-                utilityRef.current.ShowMessage('Dataset uuid not found.');
-                return;
+        const myIndex1 = findIndex(historyList, function (myItem) { return myItem.tao_model_uuid == myModelId });
+
+        if (myIndex1 < 0) {
+
+            utilityRef.current.showMessage('Dataset uuid not found.');
+            return;
+        }
+
+        const myDatasetId = historyList[myIndex1].dataset_uuid;
+        const myProjectId = getProjectIdByDatasetId(myDatasetId);
+        log('myProjectId:' + myProjectId)
+
+        if (myProjectId === '') {
+
+            utilityRef.current.showMessage('Project uuid not found.');
+            return;
+        }
+
+        const myIndex2 = findIndex(projectData, function (myItem) { return myItem.project_uuid == myProjectId });
+
+        if (myIndex2 < 0) {
+
+            utilityRef.current.showMessage('Project not found.');
+            return;
+        }
+
+        if (myIndex2 >= 0) {
+            const project = projectData[myIndex2];
+            const project_uuid = projectData[myIndex2].project_uuid;
+
+            setCurrentProject(project);
+            if (project.export_uuid) {
+                setPageKey('SetAttributePage')
+            } else {
+                utilityRef.current.showMessage('Export uuid not found.');
             }
-    
-            const myDatasetId = historyList[myIndex1].dataset_uuid;
-            const myProjectId = getProjectIdByDatasetId(myDatasetId);
-            log('myProjectId:'+myProjectId)
+        }
 
-            if (myProjectId==='') {
 
-                utilityRef.current.ShowMessage('Project uuid not found.');
-                return;
-            }
-
-            const myIndex2 = findIndex(projectData, function (myItem) { return myItem.project_uuid == myProjectId });
-
-            if (myIndex2<0) {
-
-                utilityRef.current.ShowMessage('Project not found.');
-                return;
-            }
-
-            if (myIndex2>=0) {
-                const project=projectData[myIndex2];
-                const project_uuid=projectData[myIndex2].project_uuid;
-                
-                setCurrentProject(project);
-                if (project.export_uuid) {
-                    setPageKey('SetAttributePage')
-                }else{
-                    utilityRef.current.ShowMessage('Export uuid not found.');
-                }
-            }
-            
-            
     }
 
     const handleViewClick = () => {
- 
+
         viewTaskByModelId(currentUuid);
 
+    }
+
+    const handleTaskStopClick = async () => {
+
+        //viewTaskByModelId(currentUuid);
+        console.log('handleTaskStopClick')
+        console.log(currentUuid)
+        //taoStartTrainAPI
+
+        utilityRef.current.setLoading(true);
+
+        const res = await fetch(taoStartTrainAPI, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ "tao_model_uuid": currentUuid, "force": true })
+        })
+        const resJson = await res.json();
+
+        if (resJson.detail) {
+            utilityRef.current?.showErrorMessage(resJson.detail);
+            return;
+        }
+
+        if (resJson.message) {
+            utilityRef.current.showMessage(resJson.message);
+        }
+
+        utilityRef.current.setLoading(false);
+
+        getTrainingList();
+
+
+
+    }
+
+    const getTrainInfo_xx = async (myModelId) => {
+
+    }
+
+    const getTrainInfo = async (myModelId) => {
+        
+
+        const res = await fetch(`${taoTrainInfoIdAPI}?tao_model_uuid=${myModelId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+
+        })
+        const resJson = await res.json();
+
+        if (resJson.detail) {
+            utilityRef.current?.showErrorMessage(resJson.detail);
+            return;
+        }
+
+        console.log(`(1)------------------------------------- get train info by ${myModelId} ---`)
+        console.log(resJson)
+
+        const showInfo=['model_type','cls_weight','margin','batch_size','fpratio_sampling','num_epochs','lr','','checkpoint_interval'];
+
+        const myInfoList=[];
+
+        showInfo.forEach((item,index)=>{
+            if (resJson[item]){
+                myInfoList.push({name:resJson[item][1],value:resJson[item][0]});
+            }
+        });
+
+        console.log(myInfoList);
+        setInfoList(myInfoList);
+
+
+        // if (resJson.model_type) setInfoModelType(resJson.model_type[0]);
+        // if (resJson.margin) setInfoMargin(resJson.margin[0]);
+        // if (resJson.batch_size) setInfoBatchSize(resJson.batch_size[0]);
+        // if (resJson.fpratio_sampling) setInfoFpratioSampling(resJson.fpratio_sampling[0]);
+        // if (resJson.num_epochs) setInfoNumberOfEpochs(resJson.num_epochs[0]);
+        // if (resJson.lr) setInfoLearningRate(resJson.lr[0]);
+        // if (resJson.checkpoint_interval) setInfoCheckPointInterval(resJson.checkpoint_interval[0]);
+
+
+
+
+
+        // console.log(resJson)
+
+       
+    }
+
+    const getSettingFile = async (myModelId) => {
+        log(`getSettingFile ${myModelId}`)
+
+        try {
+
+            const myUrl = `${taoDownloadYamlAPI}?tao_model_uuid=${myModelId}`;
+
+            const res = await fetch(myUrl, { method: 'GET' });
+
+            const resYaml = await res.text();
+
+            const yamlObj = YAML.parse(resYaml);
+
+            const myEpochs = yamlObj.train.num_epochs;
+
+            if (totalStep !== myEpochs) {
+                setTotalStep(myEpochs);
+            }
+
+
+        } catch (err) {
+            console.log(err)
+        }
     }
 
     useEffect(() => {
 
         setCurrentPercent(0);
         setCurrentStep(0);
-        getTrainingList();
+
+
+        setTimeout(() => {
+            getTrainingList();
+        }, 1000);
+
         getHistoryList();
 
         log('---- project data ----')
         console.log(props.projectData);
 
         // every 5 seconds get training list
-        const interval = setInterval(() => {
-            getTrainingList();
-            getHistoryList();
+        const interval = setInterval(async () => {
+            await getTrainingList();
+            await getHistoryList();
         }, 10000);
 
+        const currentTab = utilityRef.current.getCurrentTab();
+        log('currentTab', currentTab);
+        if (currentTab === 'current') {
+            currentTabRef.current.click();
+        } else {
+            historyTabRef.current.click();
+        }
 
-
+        return () => clearInterval(interval);
     }, []);
+
 
 
     useEffect(() => {
 
-        const myTaskList = map(taskList, 'tao_model_uuid');
-        const myFetchList = map(fetchList, 'tao_model_uuid');
+        console.log(`--- currentUuid [${currentUuid}] ---`)
 
-        if (!isEqual(myTaskList, myFetchList)) {
-            setTaskList(fetchList);
-            fetchList.map((item, index) => {
+        if (currentUuid === '') {
 
-                if (item.train_status.status === 'START') {
+            if (currentPercent === 100) {
 
-                    if (item.tao_model_uuid !== currentUuid) {
-                        setCurrentUuid(item.tao_model_uuid);
-                        getTrainStatus(item.tao_model_uuid);
-                        getHistoryList();
-                        setCurrentStep(0);
-                        setCurrentPercent(0);
-                        if (chartRef.current) {
-                            chartRef.current.resetLineData();
-                        }
-                    }
-
-                }
-            });
-
+                utilityRef.current.setCurrentTab('history');
+                historyTabRef.current.click();
+            }
         }
 
-    }, [taskList,fetchList]);
+    }, [currentUuid]);
+
+    useEffect(() => {
+
+        console.log(`--- currentEvaluateId [${currentTaoEvaluateId}] ---`)
+        console.log(`--- currentInferenceId [${currentTaoInferenceId}] ---`)
+        console.log(`--- currentExportId [${currentTaoExportId}] ---`)
+
+
+
+    }, [currentTaoEvaluateId, currentTaoInferenceId, currentTaoExportId]);
+
+
+
+
+    useEffect(() => {
+
+
+        setTaskList(fetchList);
+
+        if (fetchList.length === 0) {
+            setCurrentUuid('');
+            setWsUrl('');
+        }
+
+        fetchList.map((item, index) => {
+
+            if (index === 0) {
+                const newUuid = item.tao_model_uuid;
+                if (newUuid !== currentUuid) {
+                    setCurrentUuid(newUuid);
+                    getTrainStatus(newUuid);
+                    getSettingFile(newUuid);
+                    getHistoryList();
+                    setCurrentStep(0);
+                    setCurrentPercent(0);
+                    getTrainInfo(newUuid);
+                    if (chartRef.current) {
+                        chartRef.current.resetLineData();
+                    }
+                }
+            }
+
+        });
+
+
+
+
+    }, [fetchList]);
 
 
 
     return (
         <>
-
+            {
+                (wsUrl !== '') ?
+                    <TrainWebSocket url={wsUrl} onSocketMessage={handleLastMessage} />
+                    : <></>
+            }
             <ThemeProvider theme={theme}>
+
+
+                <Modal open={showDetail}>
+                    <ModalDialog style={{ width: 500, height: 700, backgroundColor: '#ffffff' }} layout='center'>
+                        <div className='d-flex align-items-end flex-column bd-highlight mb-0' style={{ height: 600 }}>
+                            <div className='container-fluid'>
+
+                                <div className='row mt-2 p-0'>
+                                    <div className='col-12 d-flex justify-content-between p-0' style={{ paddingRight: 21 }}>
+                                        <h4 style={{ margin: 0 }}>Task Detail Info</h4>
+                                    </div>
+                                </div>
+
+                                <div className='row mt-1'>
+                                    <div className='col-md-12 mt-3 p-0 d-flex flex-row justify-content-between align-items-center'>
+                                        <div className='my-detail-item-lv0'>
+                                            Pretrained Model Info
+                                        </div>
+                                        <div className='my-detail-item'>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className='row'>
+                                    <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-between' style={{ borderBottom: '1px solid #16272e3d' }}>
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-3 p-0 d-flex flex-row justify-content-between align-items-center'>
+                                        <div className='my-detail-item-lv1'>
+                                            1. Name
+                                        </div>
+                                        <div className='my-detail-item-lv2'>
+                                            {(currentTaskInfo.pretrained?.name)?currentTaskInfo.pretrained.name:'N/A'}
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-between align-items-center'>
+                                        <div className='my-detail-item-lv1'>
+                                            2. Version
+                                        </div>
+                                        <div className='my-detail-item-lv2'>
+                                            {(currentTaskInfo.pretrained?.name)?currentTaskInfo.pretrained.version:'N/A'}
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div className='row mt-1'>
+                                    <div className='col-md-12 mt-3 p-0 d-flex flex-row justify-content-between align-items-center'>
+                                        <div className='my-detail-item-lv0'>
+                                            Completed
+                                        </div>
+                                        <div className='my-detail-item'>
+                                            {
+                                                (currentTaskInfo.completed) ?
+                                                    <FontAwesomeIcon icon={faSquareCheck} color="green" style={{width:24,height:24}} />
+                                                    :
+                                                    <FontAwesomeIcon icon={faSquare} color="#16272E3D" style={{width:24,height:24}} />
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+
+
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-between' style={{ borderBottom: '1px solid #16272e3d' }}>
+
+                                    </div>
+                                </div>
+
+                                <div className='row' style={{height:45}}>
+                                    <div className='col-md-12 mt-3 p-0 d-flex flex-row justify-content-between'>
+                                        <div className='my-detail-item-lv1'>
+                                            1. Upload dataset
+                                        </div>
+                                        <div className='my-detail-item'>
+                                            {
+                                                (currentTaskInfo.upload_dataset?.success) ?
+                                                    <FontAwesomeIcon icon={faSquareCheck} color="green" style={{width:24,height:24}} />
+                                                    :
+                                                    <FontAwesomeIcon icon={faSquare} color="#16272E3D" style={{width:24,height:24}} />
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {
+                                    (currentTaskInfo.upload_dataset?.status?.train?.length >= 2) ?
+                                        <div className='row'>
+                                            <div className='col-md-12 mt-0 p-0 d-flex flex-row justify-content-start'>
+                                                <div className='my-detail-item-lv2'>
+                                                    Train {currentTaskInfo.upload_dataset.status.train[1]}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        :
+                                        <></>
+                                }
+
+                                {
+                                    (currentTaskInfo.upload_dataset?.status?.val?.length >= 2) ?
+                                        <div className='row'>
+                                            <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-start'>
+                                                <div className='my-detail-item-lv2'>
+                                                    Val {currentTaskInfo.upload_dataset.status.val[1]}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        :
+                                        <></>
+                                }
+
+
+                                <div className='row' style={{height:32}}>
+                                    <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-between'>
+                                        <div className='my-detail-item-lv1'>
+                                            2. Train
+                                        </div>
+                                        <div className='my-detail-item'>
+                                            {
+                                                (currentTaskInfo.train?.success) ?
+                                                    <FontAwesomeIcon icon={faSquareCheck} color="green" style={{width:24,height:24}} />
+                                                    :
+                                                    <FontAwesomeIcon icon={faSquare} color="#16272E3D" style={{width:24,height:24}} />
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {
+                                    (currentTaskInfo.train?.status.length >= 2) ?
+                                        <div className='row'>
+                                            <div className='col-md-12 mt-0 p-0 d-flex flex-row justify-content-start'>
+                                                <div className='my-detail-item-lv2'>
+                                                    {currentTaskInfo.train.status[1]}
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                        :
+                                        <></>
+                                }
+
+
+
+                                <div className='row' style={{height:32}}>
+                                    <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-between'>
+                                        <div className='my-detail-item-lv1'>
+                                            3. Evaluate
+                                        </div>
+                                        <div className='my-detail-item'>
+                                            {
+                                                (currentTaskInfo.evaluate?.success) ?
+                                                    <FontAwesomeIcon icon={faSquareCheck} color="green" style={{width:24,height:24}} />
+                                                    :
+                                                    <FontAwesomeIcon icon={faSquare} color="#16272E3D" style={{width:24,height:24}} />
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {
+                                    (currentTaskInfo.evaluate?.status.length >= 2) ?
+                                        <div className='row'>
+                                            <div className='col-md-12 mt-0 p-0 d-flex flex-row justify-content-start'>
+                                                <div className='my-detail-item-lv2'>
+                                                    {currentTaskInfo.evaluate.status[1]}
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                        :
+                                        <></>
+                                }
+
+
+                                <div className='row' style={{height:32}}>
+                                    <div className='col-md-12 mt-1 p-0 d-flex flex-row justify-content-between'>
+                                        <div className='my-detail-item-lv1'>
+                                            4. Inference
+                                        </div>
+                                        <div className='my-detail-item'>
+                                            {
+                                                (currentTaskInfo.inference?.success) ?
+                                                    <FontAwesomeIcon icon={faSquareCheck} color="green" style={{width:24,height:24}} />
+                                                    :
+                                                    <FontAwesomeIcon icon={faSquare} color="#16272E3D" style={{width:24,height:24}} />
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {
+                                    (currentTaskInfo.inference?.status.length >= 2) ?
+                                        <div className='row'>
+                                            <div className='col-md-12 mt-0 p-0 d-flex flex-row justify-content-start'>
+                                                <div className='my-detail-item-lv2'>
+                                                    {currentTaskInfo.inference.status[1]}
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                        :
+                                        <></>
+                                }
+
+
+                                <div className='row' style={{height:32}}>
+                                    <div className='col-md-12 mt-0 p-0 d-flex flex-row justify-content-between'>
+                                        <div className='my-detail-item-lv1'>
+                                            5. Export
+                                        </div>
+                                        <div className='my-detail-item'>
+                                            {
+                                                (currentTaskInfo.export?.success) ?
+                                                    <FontAwesomeIcon icon={faSquareCheck} color="green" style={{width:24,height:24}} />
+                                                    :
+                                                    <FontAwesomeIcon icon={faSquare} color="#16272E3D" style={{width:24,height:24}} />
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {
+                                    (currentTaskInfo.export?.status.length >= 2) ?
+                                        <div className='row'>
+                                            <div className='col-md-12 mt-0 p-0 d-flex flex-row justify-content-start'>
+                                                <div className='my-detail-item-lv2'>
+                                                    {currentTaskInfo.export.status[1]}
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                        :
+                                        <></>
+                                }
+
+
+
+
+                            </div>
+                        </div>
+                        <div className='container-fluid mt-auto'>
+                            <div className='row'>
+                                <div className='col-md-12 d-flex flex-row gap-3 justify-content-end p-0'>
+                                    <div><CustomButton name="view" text="Close" width={100} height={32} onClick={() => setShowDetail(false)} /></div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </ModalDialog>
+                </Modal>
+
+                <Modal open={showDeleteHistoryConfirm}>
+                    <ModalDialog style={{ width: 500, height: 300, backgroundColor: '#ffffff', borderRadius: '12px' }} layout='center'>
+                        <div className='d-flex align-items-end flex-column bd-highlight mb-0' style={{ height: 600 }}>
+                            <div className='container-fluid'>
+
+                                <div className='row mt-2 p-0'>
+                                    <div className='col-12 d-flex justify-content-between p-0' style={{ paddingRight: 21 }}>
+                                        <h4 style={{ margin: 0 }}>Delete Confirm</h4>
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-3 p-0'>
+                                        <div className='my-input-title py-1'>
+                                            Are you sure to delete the item {(currentDeleteItem) ? currentDeleteItem.tao_model_name : ''}?
+                                        </div>
+
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                        <div className='container-fluid mt-auto'>
+                            <div className='row'>
+                                <div className='col-md-12 d-flex flex-row gap-3 justify-content-end p-0'>
+                                    <div><CustomButton name="cancel" width={100} height={32} onClick={() => setShowDeleteHistoryConfirm(false)} /></div>
+                                    <div><CustomButton name="view" text="OK" width={100} height={32} onClick={() => handleDeleteHistoryConfirm()} /></div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </ModalDialog>
+                </Modal>
+
+                <Modal open={showDeleteTaskConfirm}>
+                    <ModalDialog style={{ width: 500, height: 300, backgroundColor: '#ffffff', borderRadius: '12px' }} layout='center'>
+                        <div className='d-flex align-items-end flex-column bd-highlight mb-0' style={{ height: 600 }}>
+                            <div className='container-fluid'>
+
+                                <div className='row mt-2 p-0'>
+                                    <div className='col-12 d-flex justify-content-between p-0' style={{ paddingRight: 21 }}>
+                                        <h4 style={{ margin: 0 }}>Delete Confirm</h4>
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-3 p-0'>
+                                        <div className='my-input-title py-1'>
+                                            Are you sure to delete the item {(currentDeleteItem) ? getModelNameByModelId(currentDeleteItem.tao_model_uuid) : ''}?
+                                        </div>
+
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                        <div className='container-fluid mt-auto'>
+                            <div className='row'>
+                                <div className='col-md-12 d-flex flex-row gap-3 justify-content-end p-0'>
+                                    <div><CustomButton name="cancel" width={100} height={32} onClick={() => setShowDeleteTaskConfirm(false)} /></div>
+                                    <div><CustomButton name="view" text="OK" width={100} height={32} onClick={() => handleDeleteTaskConfirm()} /></div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </ModalDialog>
+                </Modal>
+
+
+
                 <div className="container">
                     <div className="title-container">
                         <div className="title-style">Train Page</div>
-                        
+
                     </div>
                     <div className="train-page-content">
                         <SchedulerHeadContainer $noOverFlow={true}>
@@ -659,11 +1326,28 @@ const TrainPage = (props) => {
 
                                         <ul className="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
                                             <li className="nav-item" role="presentation">
-                                                <button className="my-nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab" aria-controls="info" aria-selected="true">Current</button>
+                                                <button className="my-nav-link active"
+                                                    id="current-tab"
+                                                    data-bs-toggle="tab"
+                                                    data-bs-target="#current"
+                                                    type="button" role="tab"
+                                                    aria-controls="info"
+                                                    aria-selected="true"
+                                                    ref={currentTabRef}
+                                                    onClick={() => utilityRef.current.setCurrentTab('current')}>Current</button>
 
                                             </li>
                                             <li className="nav-item" role="presentation">
-                                                <button className="my-nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="log" aria-selected="false">History</button>
+                                                <button className="my-nav-link"
+                                                    id="history-tab"
+                                                    data-bs-toggle="tab"
+                                                    data-bs-target="#history"
+                                                    type="button" role="tab"
+                                                    aria-controls="log"
+                                                    aria-selected="false"
+                                                    ref={historyTabRef}
+                                                    onClick={() => utilityRef.current.setCurrentTab('history')}
+                                                >History</button>
                                             </li>
                                         </ul>
 
@@ -687,14 +1371,14 @@ const TrainPage = (props) => {
 
                                                 </div>
                                                 :
-                                                <div className='my-tab-container d-flex flex-row justify-content-between'>
+                                                <div className='my-tab-container d-flex flex-row justify-content-between gap-3'>
 
                                                     <div className='my-training-panel d-flex flex-column' style={{ backgroundColor: 'white' }}>
                                                         <div className='my-training-panel-section-1'>
                                                             <div className='d-flex flex-column' style={{ padding: 24 }}>
                                                                 <div className='d-flex flex-row justify-content-between' style={{ fontWeight: 500, fontSize: 22 }}>
 
-                                                                    <div style={{ width: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                    <div style={{ width: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
 
                                                                         {getModelNameByModelId(currentUuid)}
 
@@ -708,13 +1392,15 @@ const TrainPage = (props) => {
 
                                                                     </Stack>
                                                                 </div>
+
                                                                 <div className='d-flex flex-row justify-content-between' style={{ fontWeight: 400, fontSize: 13, color: '#000000D9' }}>
-                                                                    <div>Started at {startTime}</div>
-                                                                    <div>{remainingTime} left</div>
+                                                                    {/* <div>Started at {startTime}</div>
+                                                                    <div>{remainingTime} left</div> */}
                                                                 </div>
+
                                                                 <div className='d-flex flex-row justify-content-between' style={{ paddingTop: 15, paddingBottom: 0 }}>
-                                                                    <div><CustomButton name="stop" width={116} height={32} /></div>
-                                                                    <div><CustomButton name="view" width={116} height={32} onClick={handleViewClick}/></div>
+                                                                    <div><CustomButton name="stop" width={116} height={32} onClick={handleTaskStopClick} /></div>
+                                                                    <div><CustomButton name="view" text="View" width={116} height={32} onClick={handleViewClick} /></div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -727,27 +1413,21 @@ const TrainPage = (props) => {
                                                         <div className='my-training-panel-section-3'>
 
 
-                                                            <div className='d-flex flex-column' style={{ padding: '24px 20px' }}>
+                                                            <div className='d-flex flex-column' style={{ padding: '15px 20px 10px 20px' }}>
                                                                 <div className='d-flex flex-row justify-content-between' style={{ fontWeight: 500, fontSize: 22, paddingBottom: 5 }}>
                                                                     <div>Information</div>
                                                                 </div>
 
-                                                                <div className='d-flex flex-row justify-content-start' style={{ borderBottom: '1px solid #0000001F', paddingLeft: 8 }}>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#979CB5', width: 120, height: 34, paddingTop: 3 }}>Model type</div>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#16272E', paddingTop: 3 }}></div>
-                                                                </div>
-                                                                <div className='d-flex flex-row justify-content-start' style={{ borderBottom: '1px solid #0000001F', paddingLeft: 8 }}>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#979CB5', width: 120, height: 34, paddingTop: 3 }}>Platform</div>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#16272E', paddingTop: 3 }}></div>
-                                                                </div>
-                                                                <div className='d-flex flex-row justify-content-start' style={{ borderBottom: '1px solid #0000001F', paddingLeft: 8 }}>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#979CB5', width: 120, height: 34, paddingTop: 3 }}>Dataset count</div>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#16272E', paddingTop: 3 }}></div>
-                                                                </div>
-                                                                <div className='d-flex flex-row justify-content-start' style={{ borderBottom: '1px solid #0000001F', paddingLeft: 8 }}>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#979CB5', width: 120, height: 34, paddingTop: 3 }}>Training method</div>
-                                                                    <div className='d-flex align-items-center' style={{ fontSize: 14, color: '#16272E', paddingTop: 3 }}></div>
-                                                                </div>
+                                                                {
+                                                                    infoList.map((item, index) => (
+                                                                        <div key={`infoList_${index}`} className='d-flex flex-row justify-content-start' style={{ borderBottom: '1px solid #0000001F', paddingLeft: 8 }}>
+                                                                            <div className='my-info-text d-flex align-items-center'>{item.name}</div>
+                                                                            <div className='my-info-value d-flex align-items-center'>{item.value}</div>
+                                                                        </div>
+                                                                    ))
+                                                                }
+
+                                                           
 
                                                             </div>
 
@@ -794,17 +1474,15 @@ const TrainPage = (props) => {
                                                                         <div className='my-tbody-td' style={{ width: currentTableColumnWidth[2] }}>
                                                                             {
                                                                                 (item.train_status.status === 'START') ? <StatusButton name="training" /> :
-                                                                                    (item.train_status.status === 'WAIT') ? <StatusButton name="waiting" /> :
-                                                                                        (item.train_status.status === 'failed') ? <StatusButton name="failed" /> :
-                                                                                            (item.train_status.status === 'stop') ? <StatusButton name="manual stop" /> :
-                                                                                                (item.train_status.status === 'error') ? <StatusButton name="error" /> :
-                                                                                                    (item.train_status.status === 'done') ? <StatusButton name="done" /> : <StatusButton name="waiting" />
+                                                                                    (item.train_status.status === 'WAIT') ? <StatusButton name="train-wait" /> :
+                                                                                        (item.train_status.status === 'SUCCESS') ? <StatusButton name="train-active" /> :
+                                                                                            (item.train_status.status === 'FAILURE') ? <StatusButton name="train-failed" title={item.train_status.details} /> : <StatusButton name="waiting" />
                                                                             }
 
                                                                         </div>
                                                                         <div className='my-tbody-td' style={{ width: currentTableColumnWidth[3], fontWeight: 300 }}>{moment.unix(item.create_time / 1000000).format("YYYY-MM-DD HH:mm")}</div>
-                                                                        <div className='my-tbody-td' style={{ width: currentTableColumnWidth[4] }}>
-                                                                            <ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={handleDeleteTask} onViewTask={handleViewTask}/>
+                                                                        <div className='my-tbody-td d-flex justify-content-end p-3' style={{ width: currentTableColumnWidth[4] }}>
+                                                                            <ExtendButton type={2} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={() => handleDeleteTask(item)} onViewTask={handleViewTask} onDetailTask={handleDetailTask} />
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -820,8 +1498,8 @@ const TrainPage = (props) => {
 
                                         }
                                     </div>
-                                    <div className="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab" style={{ backgroundColor: 'red' }}>
-                                        <div className='my-tab-container'>
+                                    <div className="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab" style={{ backgroundColor: 'red', width: '100%' }}>
+                                        <div className='my-tab-container' style={{ width: '80vw', maxWidth: 1200, backgroundColor: 'red' }}>
 
                                             <div className='my-table'>
                                                 <div className={(table2HeaderNoShadow) ? 'my-thead' : 'my-thead-shadow'}>
@@ -838,7 +1516,7 @@ const TrainPage = (props) => {
 
                                                         <div key={`history_${index}`} >
 
-                                                            <div className={(index === (taskList.length - 1)) ? `my-tbody-row-${(index % 2 === 1) ? "1" : "2"} flash-element` : `my-tbody-row-${(index % 2 === 1) ? "1" : "2"}`} task_uuid={item.tao_model_uuid}>
+                                                            <div className={(index === (historyList.length - 1)) ? `my-tbody-row-${(index % 2 === 1) ? "1" : "2"} flash-element` : `my-tbody-row-${(index % 2 === 1) ? "1" : "2"}`} task_uuid={item.tao_model_uuid}>
 
                                                                 <div className='my-tbody-td' style={{ width: historyTableColumnWidth[0] }} >{index + 1}</div>
                                                                 <div className='my-tbody-td' style={{ width: historyTableColumnWidth[1], overflow: 'hidden', textOverflow: 'ellipsis' }} >
@@ -848,30 +1526,53 @@ const TrainPage = (props) => {
                                                                 </div>
                                                                 <div className='my-tbody-td d-flex flex-row gap-2' style={{ width: historyTableColumnWidth[2] }}>
                                                                     {
-                                                                        (item.tao_model_status.train.status) ? <StatusButton name="train-active" style={{cursor:'default !important'}}/> :
-                                                                            (item.tao_model_uuid === currentUuid) ? <StatusButton name="training" style={{cursor:'default !important'}}/> :
-                                                                                <StatusButton name="train-inactive" style={{cursor:'default !important'}}/>
+                                                                        (item.tao_model_status.train.success) ? <StatusButton name="train-active" style={{ cursor: 'default !important' }} /> :
+                                                                            (item.tao_model_uuid === currentUuid) ? <StatusButton name="training" style={{ cursor: 'default !important' }} /> :
+                                                                                <div>
+                                                                                    <StatusButton name="train-inactive" style={{ cursor: 'default !important' }} onClick={() => doTrain(item.tao_model_uuid)} />
+                                                                                </div>
                                                                     }
 
                                                                     {
-                                                                        (item.tao_model_status.evaluate.status) ?
-                                                                            <StatusButton name="evaluate-active" style={{cursor:'none'}}/>
+
+                                                                        (item.tao_model_status.evaluate.success) ?
+                                                                            <StatusButton name="evaluate-active" onClick={() => doEvaluate(item.tao_model_uuid)} style={{ cursor: 'pointer' }} />
                                                                             :
-                                                                            <StatusButton name="evaluate-inactive" onClick={()=>doEvaluate(item.tao_model_uuid)} style={{cursor:'pointer'}}/>
+                                                                            (item.tao_model_uuid === currentTaoEvaluateId) ?
+                                                                                <StatusButton name="evaluate-running" />
+                                                                                :
+                                                                                <StatusButton name="evaluate-inactive" onClick={() => doEvaluate(item.tao_model_uuid)} style={{ cursor: 'pointer' }} />
 
                                                                     }
 
                                                                     {
-                                                                        (item.tao_model_status.inference.status) ?
-                                                                            <StatusButton name="inference-active" onClick={()=>doInference(item.tao_model_uuid)} style={{cursor:'pointer'}}/>
+
+                                                                        (item.tao_model_status.inference.success) ?
+                                                                            <StatusButton name="inference-active" onClick={() => doInference(item.tao_model_uuid, item.tao_model_name)} style={{ cursor: 'pointer' }} />
                                                                             :
-                                                                            <StatusButton name="inference-inactive" onClick={()=>doInference(item.tao_model_uuid)} style={{cursor:'pointer'}}/>
+                                                                            (item.tao_model_uuid === currentTaoInferenceId) ?
+                                                                                <StatusButton name="inference-running" />
+                                                                                :
+                                                                                <StatusButton name="inference-inactive" onClick={() => doInference(item.tao_model_uuid, item.tao_model_name)} style={{ cursor: 'pointer' }} />
+
+                                                                    }
+
+                                                                    {
+
+                                                                        (item.tao_model_status.export.success) ?
+                                                                            <StatusButton name="export-active" onClick={() => doExport(item.tao_model_uuid)} style={{ cursor: 'pointer' }} />
+                                                                            :
+                                                                            (item.tao_model_uuid === currentTaoExportId) ?
+                                                                                <StatusButton name="export-running" />
+                                                                                :
+                                                                                <StatusButton name="export-inactive" onClick={() => doExport(item.tao_model_uuid)} style={{ cursor: 'pointer' }} />
 
                                                                     }
 
                                                                 </div>
                                                                 <div className='my-tbody-td' style={{ width: historyTableColumnWidth[3], fontWeight: 300 }}>{moment.unix(item.create_time / 1000000).format("YYYY-MM-DD HH:mm")}</div>
-                                                                <div className='my-tbody-td d-flex justify-content-end' style={{ width: historyTableColumnWidth[4], padding: '20px' }}><ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={handleDeleteHistory} onViewTask={handleViewTask}/></div>
+                                                                <div className='my-tbody-td d-flex justify-content-end' style={{ width: historyTableColumnWidth[4], padding: '20px' }}>
+                                                                    <ExtendButton type={1} uuid={item.tao_model_uuid} projectName={item.tao_model_uuid} onDeleteTask={() => handleDeleteHistory(item)} onViewTask={handleViewTask} onDetailTask={handleDetailTask} /></div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -888,61 +1589,11 @@ const TrainPage = (props) => {
                             </SchedulerBodyWrapper>
                         </SchedulerBodyContainer >
 
-
-
                     </div>
                 </div>
             </ThemeProvider >
             <Utility ref={utilityRef} />
 
-
-            
-
-            <Modal
-                open={showInferenceResultModal}
-            >
-                <ModalDialog
-                    sx={{ minWidth: 1200, maxWidth: 1200, minHeight: 800 }}
-                >
-                    <div className='container-fluid'>
-                        <div className='row'>
-                            <div className='col-12 p-0 my-dialog-title d-flex flex-row justify-content-between'>
-                                <div>
-                                    Inference Result
-                                </div>
-                                <CustomButton name="download" onClick={handleDownload}/>
-                            </div>
-                        </div>
-                        <div className='row'>
-                            <div className='col-12 p-0 my-dialog-content'>
-                                <div>
-                                    {
-                                         resultList.map((item, i) => (
-                                            <div key={`resultList_${item.imageUuid}`} >
-                                                <ResultCard data={item} onChange={()=>handleLabelToggle(item.imageUuid)}></ResultCard>
-                                            </div>
-                                        ))
-                                    }
-                                </div>
-
-                            </div>
-                        </div>
-                        <div className='row'>
-                            <div className='col-12 d-flex justify-content-end' style={{ padding: 0 }}>
-                                <div style={{ paddingTop: 20 }} className='d-flex gap-3'>
-                                    <CustomButton name="cancel" onClick={() => {
-                                        setShowInferenceResultModal(false);
-                                    }} />
-                                    <CustomButton name="save" />
-
-                                </div>
-                            </div>
-                        </div>
-                        
-                       
-                    </div>
-                </ModalDialog>
-            </Modal>
         </>
     );
 }

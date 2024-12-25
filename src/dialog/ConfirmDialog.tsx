@@ -3,6 +3,7 @@ import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import { theme } from '../page/ProjectPage';
 import { AttributeType } from '../page/type';
+import CustomButton from '../components/Buttons/CustomButton';
 
 const useStyles = makeStyles()(() => ({
   customDialog: {
@@ -60,9 +61,10 @@ const ConfirmDialog = (props: ConfirmDialogProps) => {
                 >
                   OK
                 </Button>
+               
               </div>
             </div>
-          </form>
+          </form> 
         </div>
       </Dialog>
     </ThemeProvider>

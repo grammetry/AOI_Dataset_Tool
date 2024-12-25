@@ -1,0 +1,59 @@
+{
+    "task_uuid": "1243034f-1479-4606-a000-e40526154c10",
+    "panel": "4DM28K71B6C-1-01-S",
+    "model": "7e367838-2724-42d3-9588-c756315361ba",
+    "status": "running",
+    "switch": true,
+    "infer_panel": {
+        "4DM28K71B6C-1-01-S": true,
+        "4DM28K71B6C-1-04-S": true,
+        "4DM28K71B6C-1-05-S": true,
+        "4DM28K71B6C-2-04-S": true,
+        "4DM28K71B6C-3-01-S": true,
+        "4DM28K71B6C-3-02-S": true,
+        "4DM28K71B6C-3-03-S": true,
+        "4DM28K71B6C-3-04-S": true,
+        "4DM28K71B6C-3-05-S": true,
+        "4DM28K71B6C-3-06-S": true,
+        "4DM28K71B6C-4-01-S": true,
+        "4DM28K71B6C-4-03-S": true,
+        "4DM28K71B6C-5-01-S": true,
+        "4DM28K71B6C-5-02-S": true,
+        "4DM28K71B6C-5-03-S": true,
+        "4DM28K71B6C-7-01-S": true,
+        "4DM28K71B6C-7-02-S": true,
+        "4DM28K71B6C-7-03-S": true
+    },
+    "process": {
+        "c6699c10": "",
+        "0a8eef84": "",
+        "3661482b": "",
+        "02d12c0a": ""
+    },
+    "server_container": {
+        "12be80e348": {
+            "process_uuid": "50b63aef",
+            "port": 8789
+        }
+    },
+    "client_container": {
+        "61314e0a21": {
+            "process_uuid": "c6699c10"
+        },
+        "747223c46a": {
+            "process_uuid": "0a8eef84"
+        },
+        "9fcc68d7f9": {
+            "process_uuid": "3661482b"
+        },
+        "951400c069": {
+            "process_uuid": "02d12c0a"
+        }
+    },
+    "create_time": 1719274983094948,
+    "offline_container": {
+        "951400c069": {
+            "process_uuid": "02d12c0a"
+        }
+    }
+}

@@ -1,7 +1,9 @@
-import { Dispatch, FormEventHandler, SetStateAction } from 'react';
+import { Dispatch, FormEventHandler, SetStateAction, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Button, Dialog, ThemeProvider } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
+import CustomInput, { CustomInputRef } from '../components/Inputs/CustomInput';
+import CustomButton from '../components/Buttons/CustomButton';
 
 import { setMessage, setShow } from '../redux/store/slice/currentMessage';
 
@@ -10,144 +12,207 @@ import Required from '../components/Required';
 import { theme } from '../page/ProjectPage';
 
 import { ProjectDataType } from '../page/type';
+import { set } from 'lodash';
+import { ToastContainer, toast, cssTransition, Slide } from 'react-toastify';
 
 const useStyles = makeStyles()(() => ({
-  customDialog: {
-    borderRadius: 4,
-    '.MuiPaper-root': {
-      width: '50%',
-      height: '60%',
-      maxWidth: 500,
-      maxHeight: 360,
-      backgroundColor: '#FFFCF9',
+    customDialog: {
+        '.MuiPaper-root': {
+            width: '50%',
+            height: '60%',
+            maxWidth: 600,
+            maxHeight: 500,
+            backgroundColor: '#FFFCF9',
+            borderRadius: 10,
+            padding: '0px 0px',
+        },
     },
-  },
 }));
 
 type UpsertProjectDialogProps = {
-  openUpsertDialog: '' | 'add' | 'edit';
-  setOpenUpsertDialog: Dispatch<SetStateAction<'' | 'add' | 'edit'>>;
-  fetchProject: (projectId: string) => void;
-  currentProject?: ProjectDataType;
-  setIsLoading: Dispatch<SetStateAction<boolean>>;
+    openUpsertDialog: '' | 'add' | 'edit';
+    setOpenUpsertDialog: Dispatch<SetStateAction<'' | 'add' | 'edit'>>;
+    fetchProject: (projectId: string) => void;
+    currentProject?: ProjectDataType;
+    setIsLoading: Dispatch<SetStateAction<boolean>>;
 };
 
 const UpsertProjectDialog = (props: UpsertProjectDialogProps) => {
-  const { openUpsertDialog, setOpenUpsertDialog, fetchProject, currentProject, setIsLoading } = props;
-  const { classes, cx } = useStyles();
+
+    const { openUpsertDialog, setOpenUpsertDialog, fetchProject, currentProject, setIsLoading } = props;
+    const { classes, cx } = useStyles();
+
+    const [projectNoteWarning, setProjectNoteWarning] = useState(false);
+
+    const projectNameInputRef = useRef<CustomInputRef>(null);
+    const projectNoteInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const dispatch = useDispatch();
+
+    const setMessage=(message:string)=>{
+        toast(message, {
+            style: {
+                backgroundColor: '#16272E',
+                width: 800,
+                height: 44,
+                fontSize:'16px',
+                minHeight: 44,
+                color: 'white',
+                left:-250,
+                paddingLeft: 200
+            },
+           
+            closeOnClick: true,
+            position: "bottom-center",
+            pauseOnHover: true,
+            draggable: false,
+            theme: "light",
+          
+        });
+    }
 
 
-  const dispatch=useDispatch();
+    //const handleSubmit: FormEventHandler<HTMLFormElement> = (e) => {
+    const handleSubmit = () => {
 
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const postData = {
-      project_uuid: currentProject?.project_uuid || '',
-      project_name: (formData.get('name') as string).trim(),
-      annotation: (formData.get('note') as string).trim() || null,
-      //annotation: (formData.get('note') as string).replace(/[&\/\#, +()~%.'":@^*?<>{}]/g, '').trim() || null,
-    };
-    //if (!postData.project_name) return alert('Please input the project name.');
+        console.log('handle submit')
 
+        //const myNote=projectNoteInputRef.current?.value?.trim() || '';
 
-    if (!postData.project_name){
-      dispatch(setShow(true));
-      dispatch(setMessage('Please input the project name.'));
-      return;
-    } 
+        const myNote=projectNoteInputRef.current?.value || '';
 
-    setIsLoading(true);
+       
+        const postData = {
+            project_uuid: currentProject?.project_uuid || '',
+            project_name: (projectNameInputRef.current?.getInputValue() as string).trim(),
+            annotation: myNote,
+            //annotation: (formData.get('note') as string).replace(/[&\/\#, +()~%.'":@^*?<>{}]/g, '').trim() || null,
+        };
 
-    fetch(datasetToolProjectAPI, {
-      method: openUpsertDialog === 'add' ? 'POST' : 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(postData),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((data) => {
-            throw { error: 'API request failed', response: data };
-          });
-        } else {
-          setOpenUpsertDialog('');
-          return fetchProject(currentProject?.project_uuid || '');
+        console.log('submit')
+
+        let checkPass=true;
+
+        if (/[^a-zA-Z0-9_.\s\-/\u4E00-\u9FFF]+/.test(postData.project_name)) {
+
+            setMessage('Project name input only english letter, numerical digits, _  , .  , space, and chinese characters.');
+            projectNameInputRef.current?.setWarnning(true);
+            checkPass=false;
+
         }
 
-      })
-      .catch((err) => {
-        const msg = err?.response?.detail?.[0]?.msg || '';
-        const loc = err?.response?.detail?.[0]?.loc || [];
-        //console.log(`API error: ${msg} [${loc.join(', ')}]`);
-        //alert('api error')
-        dispatch(setShow(true));
-        dispatch(setMessage(msg));
-        
-      })
-      .finally(() => {
-        //
-        setIsLoading(false);
-      });
-  };
 
-  const handleClose = () => {
-    setOpenUpsertDialog('');
-  };
+        if (postData.annotation) {
+            if (/[|\\'\"\=%\*\?\@\$\+\^&><!#]+/.test(postData.annotation)) {
 
-  if (!openUpsertDialog) return <></>;
+                setMessage('Note input not accept \ | \' " = % * ? @ $ + ^ & > < ! # characters.');
+                setProjectNoteWarning(true);
+                checkPass=false;
 
-  return (
-    <>
-      
-      <ThemeProvider theme={theme}>
-        <Dialog open={!!openUpsertDialog} className={cx(classes.customDialog)} onClose={handleClose}>
-          <div className="dialog-container">
-            <div className="title-style">{currentProject?.project_uuid ? 'Edit Project' : 'Add Project'}</div>
-            <form onSubmit={handleSubmit}>
-              <div className="dialog-content">
-                <div style={{ marginBottom: '10px' }}>
-                  <div className="input-name">
-                    Project name
-                    <Required />
-                  </div>
-                  <input name="name" defaultValue={currentProject?.project_name || ''} />
-                </div>
-                <div className="input-name">Note</div>
-                <textarea name="note" defaultValue={currentProject?.annotation || ''} />
-              </div>
-              <div className="lower-right-button-container">
-                <Button
-                  variant="outlined"
-                  className="enlarge-button"
-                  sx={{
-                    width: 100,
-                    fontSize: 16,
-                    padding: '2px 6px',
-                    textTransform: 'none',
-                    boxShadow: '0px 2px 2px 0px #00000010',
-                    transition: 'transform 0.2s',
-                  }}
-                  onClick={() => setOpenUpsertDialog('')}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  className="enlarge-button"
-                  sx={{ width: 100, fontSize: 16, padding: '2px 6px', textTransform: 'none', transition: 'transform 0.2s' }}
-                >
-                  Save
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Dialog>
-      </ThemeProvider>
-    </>
-  );
+            }
+        }
+
+
+        if (postData.project_name === '') {         
+            setMessage('Please input the project name.');
+            projectNameInputRef.current?.setWarnning(true);
+            checkPass=false;
+        } 
+
+
+        if (!checkPass) {
+            return;
+        }
+
+        setIsLoading(true);
+
+        fetch(datasetToolProjectAPI, {
+            method: openUpsertDialog === 'add' ? 'POST' : 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(postData),
+        })
+            .then((res) => {
+                if (!res.ok) {
+                    return res.json().then((data) => {
+                        throw { error: 'API request failed', response: data };
+                    });
+                } else {
+                    setOpenUpsertDialog('');
+                    return fetchProject(currentProject?.project_uuid || '');
+                }
+
+            })
+            .catch((err) => {
+                const msg = err?.response?.detail?.[0]?.msg || '';
+                const loc = err?.response?.detail?.[0]?.loc || [];
+                console.log(`API error: ${msg} [${loc.join(', ')}]`);
+                //alert('api error')
+                
+                setMessage(msg);
+
+            })
+            .finally(() => {
+                //
+                setIsLoading(false);
+            });
+    };
+
+    const handleClose = () => {
+        setOpenUpsertDialog('');
+    };
+
+    if (!openUpsertDialog) return <></>;
+
+    return (
+        <>
+            <ToastContainer
+                position="bottom-center"
+                autoClose={3000}
+                hideProgressBar={true}
+                newestOnTop={true}
+                closeOnClick={true}
+                closeButton={false}
+                rtl={false}
+                pauseOnFocusLoss
+                draggable={false}
+                pauseOnHover
+                bodyClassName={"my-toast-body"}
+                transition={Slide}
+
+            />
+            <ThemeProvider theme={theme}>
+                <Dialog open={!!openUpsertDialog} className={cx(classes.customDialog)} onClose={handleClose}>
+                    <div className="dialog-container">
+                        <h4>{currentProject?.project_uuid ? 'Edit Project' : 'Add Project'}</h4>
+                        <div>
+                            <div className="dialog-content">
+                                <div style={{ marginBottom: '10px' }}>
+                                    <div className="my-input-title">
+                                        Project name
+                                        <Required />
+                                    </div>
+                                    <CustomInput onChange={(myValue: string) => console.log(myValue)} defaultValue={currentProject?.project_name || ''} autoComplete="off" ref={projectNameInputRef} height={40} />
+                                </div>
+                                <div className="my-input-title">Note</div>
+                                <textarea className={(projectNoteWarning)?"my-text-area-warning":"my-text-area"} name="note" 
+                                    rows={8} defaultValue={currentProject?.annotation || ''} ref={projectNoteInputRef}
+                                    onFocus={() => setProjectNoteWarning(false)}
+                                />
+                                
+                            </div>
+                            <div className="lower-right-button-container mt-2">
+                               
+                                <CustomButton name="cancel" text="Cancel" width={100} onClick={() => setOpenUpsertDialog('')}></CustomButton>
+                                <CustomButton name="view" text="Save" width={100} onClick={()=>handleSubmit()}></CustomButton>
+                            </div>
+                        </div>
+                    </div>
+                </Dialog>
+            </ThemeProvider>
+        </>
+    );
 };
 
 export default UpsertProjectDialog;

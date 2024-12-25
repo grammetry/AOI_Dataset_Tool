@@ -13,10 +13,7 @@ const ExtendButton = forwardRef((props, ref) => {
 
     const [buttonClassName, setButtonClassName] = useState('');
 
-
-
     const dispatch = useDispatch();
-
 
     const handleButtonClick = (event) => {
         event.stopPropagation();
@@ -35,6 +32,13 @@ const ExtendButton = forwardRef((props, ref) => {
     const handleViewClick = (event) => {
         event.stopPropagation();
         props.onViewTask(props.uuid, props.projectName);
+        setShowExtendMenu(false);
+
+    };
+
+    const handleDetailClick = (event) => {
+        event.stopPropagation();
+        props.onDetailTask(props.uuid, props.projectName);
         setShowExtendMenu(false);
 
     };
@@ -104,11 +108,26 @@ const ExtendButton = forwardRef((props, ref) => {
                                 (props.type === 1) &&
                                 <>
                                     <div className='my-extend-menu-item' onClick={handleDeleteClick}>
-                                        Delete
+                                        Delete item
                                     </div>
                                     <div className='my-extend-menu-item' onClick={handleViewClick}>
-                                        View
+                                        View dataset
                                     </div>
+                                    <div className='my-extend-menu-item' onClick={handleDetailClick}>
+                                        Detail info
+                                    </div>
+                                </>
+
+
+                            }
+
+                            {
+                                (props.type === 2) &&
+                                <>
+                                    <div className='my-extend-menu-item' onClick={handleDeleteClick}>
+                                        Delete item
+                                    </div>
+
                                 </>
 
 

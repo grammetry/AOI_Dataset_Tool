@@ -3,10 +3,289 @@
 // */
 
 
+(1)  http://172.16.12.28:81/inmffr/inferBackend/api/v1/health 
+
+(2)  http://172.16.12.28:81/ivit_aoi_r/inference_backend/rest/v1/task
+ 
+(3)  ws://172.16.12.28:81/websocket/ivit_aoi_r/inference_backend/api/v1/heartBeat?ip=172.16.12.28:81
+
+
 D4-O PCB (SO-DIMM) DDR4-2400 2666 3200 x8bit 欣強: BA4SRCE1 HF 0.51 30u (R)
 
+{
+    "hot_database": "active", 
+    "cold_database": "active", 
+    "inference_backend_server": "active", 
+    "nginx_proxy": "active", 
+    "cleardog": "active", 
+    "watchdog": "active", 
+    "b9a8c04d-397c-487f-835b-dcfc07e0509e": 
+        {
+            "server_container": 
+                {"a476afcd5863": "active"}, 
+            "client_container": 
+                {"8fe24149ddc4": "active", "75eea59e5137": "active", "cdba6e3e7a6e": "active"}
+        }
+    }
 
-[
-    date
 
-]
+
+
+https://hackmd.io/@kournii/SyelbaRAd
+
+g.co/crd/headless
+
+
+DISPLAY= /opt/google/chrome-remote-desktop/start-host --code="4/0ATx3LY7q-FEvWCNDjt8-qR2DpGXvBxDP4ZDIFGZLLqGGQRo3Mc6S5CKCcEuBxmh9ovRNOA" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name=$(hostname)
+
+
+DISPLAY= /opt/google/chrome-remote-desktop/start-host --code="4/0ATx3LY70XBpnS9qIESdZcLwIgD2zXfD85SRQJiRf5NuoUaAzodV6JDygjjXvUMXC1K475A" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name=$(hostname)
+
+
+
+_INVALID_NAME_PATTERN = r"[^a-zA-Z0-9_.\s\-/\u4E00-\u9FFF]+"
+_INVALID_ANNOT_PATTERN = r"[|\\'\"\=%\*\?\@\$\+\^&><!#]+"
+
+https://www.tutorialspoint.com/regex-in-reactjs
+
+ const validEmail = new RegExp(
+   '^[a-zA-Z0-9._:$!%-]+@[a-zA-Z0-9.-]+.[a-zA-Z]$'
+);
+
+
+ if (!validEmail.test(email)) {
+         setEmailErr(true);
+      }
+
+      english letter, numerical digits, _  , .  , space, and chinese characters
+
+      \ | ' " = % * ? @ $ + ^ & > < ! #
+
+
+
+https://www.cnblogs.com/linkenpark/p/7646402.html
+
+ location /abc {
+
+       
+        proxy_pass http://$http_x_ip_host/inmffr;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host:$server_port;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-PORT $remote_port;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           
+    }
+
+
+
+    Access to fetch at 'http://172.16.92.102:8080/inmfft/api/v1/dataset/generation' from origin 'http://127.0.0.1:3001' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
+
+
+
+
+    http://172.16.92.130:8080/inmfft/tao/docs
+
+    /rest/v1/modelWorkspace/train/setting
+
+     {/* <Modal open={showEdit}>
+                    <ModalDialog style={{ width: 600, height: 500, backgroundColor: '#ffffff',borderRadius:'12px' }} layout='center'>
+                        <div className='d-flex align-items-end flex-column bd-highlight mb-0' style={{ height: 600 }}>
+                            <div className='container-fluid'>
+
+                                <div className='row mt-2 p-0'>
+                                    <div className='col-12 d-flex justify-content-between p-0' style={{ paddingRight: 21 }}>
+                                        <h4 style={{ margin: 0 }}>{(currentEditItem) ? `Edit Item ${currentEditItem.name}` : `Add New Item`}</h4>
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-3 p-0'>
+                                        <div className='my-input-title py-1'>
+                                            Server Name
+                                        </div>
+                                        <div>
+                                            <CustomInput defaultValue={(currentEditItem) ? currentEditItem.name : ``} onChange={() => { }} width="100%" height="48" placeholder="" ref={serverNameRef}></CustomInput>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-3 p-0'>
+                                        <div className='my-input-title'>
+                                            Server IP
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <CustomInput defaultValue={(currentEditItem) ? currentEditItem.ip : ``} width="100%" height="48" onChange={() => { }} disabled={false} ref={serverIpRef}></CustomInput>
+
+                                            <div style={{ position: 'absolute', top: 8, right: 8 }}>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className='row'>
+                                    <div className='col-md-12 mt-3 p-0'>
+                                        <div className='my-input-title'>
+                                            Server Port
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <CustomInput defaultValue={(currentEditItem) ? currentEditItem.port : `81`} width="100%" height="48" onChange={() => { }} disabled={false} ref={serverPortRef}></CustomInput>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                        <div className='container-fluid mt-auto'>
+                            <div className='row'>
+                                <div className='col-md-12 d-flex flex-row gap-3 justify-content-end p-0'>
+                                    <div><CustomButton name="close" width={100} height={32} onClick={() => setShowEdit(false)} /></div>
+                                    {/* <div><CustomButton name="view" text="Test" width={100} height={32} onClick={() => { }} /></div> */}
+                                    <div><CustomButton name="view" text="Save" width={100} height={32} onClick={handleSaveItem} /></div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </ModalDialog>
+                </Modal> */}
+
+
+                [10].details.details_msg
+
+                Push the '20240815/TRI-MainPC-D/4M4SQ8B8N1A10-B/NCA12407260940000112/20240815000457_NCA12407260940000112.xml' file generated at '2024-08-14T16:11:43.854301+00:00' to '4M4SQ8B8N1A10-B' with reference to ['4M4SQAA6Z1A10-A', '4M4SQAA6Z1A10-B', '4M3ST8B8C2A10-A', '4M3ST8B8C2A10-B', '4M3ST8B8C9A11-A', '4M3ST8B8C9A11-B', '4M3ST8B8CAA10-A', '4M3ST8B8CAA10-B', '4M4RQ8D8A6A10-A', '4M4RQ8D8A6A10-B', '4M4SE8B8N2A10-A', '4M4SE8B8N2A10-B', '4M4SE8B8N9A10-A', '4M4SE8B8N9A10-B', '4M4SQ8B8N1A10-A', '4M4SQ8B8N1A10-B', '4M4SQ8B8N2A10-A', '4M4SQ8B8N2A10-B', '4M4SQ8B8N3A11-A', '4M4SQ8B8N3A11-B', '4M4SQ8B8N6A10-A', '4M4SQ8B8N6A10-B']
+
+
+https://support.mozilla.org/zh-TW/questions/1291264                
+
+
+4M4UOOOOOOOOO_20240817163534
+
+https://blog.csdn.net/ae_pppppp/article/details/134967558
+    
+
+
+    <ol class="list-group list-group-numbered">
+                                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                                            <div class="ms-2 me-auto">
+                                                <div class="fw-bold">Show full size image on new tab</div>
+                                                Press alt (or option) key and click the image.
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">14</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                                            <div class="ms-2 me-auto">
+                                                <div class="fw-bold">Quick view image on same page</div>
+                                                Mouse over the image and click key space.
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">14</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                                            <div class="ms-2 me-auto">
+                                                <div class="fw-bold">Subheading</div>
+                                                Cras justo odio
+                                            </div>
+                                            <span class="badge bg-primary rounded-pill">14</span>
+                                        </li>
+                                    </ol>
+
+
+
+CREATE TABLE IF NOT EXISTS public.xml_panel
+(
+    pk_panelid integer NOT NULL DEFAULT nextval('xml_panel_pk_panelid_seq'::regclass),
+    cmodel character varying COLLATE pg_catalog."default",
+    lotno character varying COLLATE pg_catalog."default",
+    stationid character varying COLLATE pg_catalog."default",
+    fdate timestamp without time zone,
+    cycletime double precision,
+    operator character varying(50) COLLATE pg_catalog."default",
+    confirmtime timestamp without time zone,
+    status character varying(50) COLLATE pg_catalog."default",
+    machine character varying(50) COLLATE pg_catalog."default",
+    carrier character varying(50) COLLATE pg_catalog."default",
+    lane integer,
+    stdimage character varying(500) COLLATE pg_catalog."default",
+    filename character varying(1000) COLLATE pg_catalog."default",
+    insertdatetime timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT xml_panel_pkey PRIMARY KEY (pk_panelid)
+)
+
+
+CREATE TABLE IF NOT EXISTS public.xml_board
+(
+    pk_boardid integer NOT NULL DEFAULT nextval('xml_board_pk_boardid_seq'::regclass),
+    fk_panelid integer,
+    imulti integer,
+    topbtm character varying(5) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    boardsn character varying(50) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    status character varying(50) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    totalcomp integer,
+    failcomp integer,
+    insertdatetime timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT xml_board_pkey PRIMARY KEY (pk_boardid)
+)
+
+
+CREATE TABLE IF NOT EXISTS public.xml_component
+(
+    pk_compid integer NOT NULL DEFAULT nextval('xml_component_pk_compid_seq'::regclass),
+    fk_boardid integer,
+    fk_panelid integer,
+    compname character varying(50) COLLATE pg_catalog."default",
+    tb character varying(5) COLLATE pg_catalog."default",
+    type character varying(50) COLLATE pg_catalog."default",
+    packagetype character varying(50) COLLATE pg_catalog."default",
+    status character varying(50) COLLATE pg_catalog."default",
+    machinedefect character varying(50) COLLATE pg_catalog."default",
+    confirmdefect character varying(50) COLLATE pg_catalog."default",
+    ai_result character varying(50) COLLATE pg_catalog."default",
+    ai_version character varying(50) COLLATE pg_catalog."default",
+    partno character varying(50) COLLATE pg_catalog."default",
+    pincount integer,
+    insertdatetime timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    ai_errorcode integer,
+    ai_additional jsonb,
+    ai_threshold numeric,
+    ai_confidence numeric,
+    CONSTRAINT xml_component_pkey PRIMARY KEY (pk_compid)
+)
+
+
+CREATE TABLE IF NOT EXISTS public.xml_image
+(
+    pk_imgid integer NOT NULL DEFAULT nextval('xml_image_pk_imgid_seq'::regclass),
+    fk_compid integer,
+    fk_boardid integer,
+    fk_panelid integer,
+    picpath character varying(1000) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    x1 integer,
+    y1 integer,
+    x2 integer,
+    y2 integer,
+    camera integer,
+    angle integer,
+    insertdatetime timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    fk_sourceid integer,
+    ai_threshold numeric,
+    ai_confidence numeric,
+    ai_errorcode integer,
+    ai_result character varying COLLATE pg_catalog."default",
+    CONSTRAINT xml_image_pkey PRIMARY KEY (pk_imgid)
+)
+
+
+CREATE TABLE IF NOT EXISTS public.xml_picture
+(
+    fk_imgid integer NOT NULL,
+    cropimage bytea,
+    code integer,
+    CONSTRAINT xml_picture_pkey PRIMARY KEY (fk_imgid)
+)

@@ -5,7 +5,8 @@ import { OptionType } from '../../page/type';
 type Props = {
     onChange: (item: OptionType | null) => void;
     options: OptionType[];
-    className: string;
+    className?: string | null;
+    width?: number | null;
     defaultOption?: OptionType;
 };
 
@@ -26,12 +27,35 @@ const ModelSelector = forwardRef<ModelSelectorRef, Props>(function ModelSelector
             getValue() {
                 return currentItem;
             },
-         
+
         }
     }, [currentItem])
     return (
 
-        <Select<OptionType, false> options={props.options} className={props.className} onChange={(item) => { setCurrentItem(item);props.onChange(item) }} value={currentItem} />
+        <Select<OptionType, false>
+            styles={{
+                control: (baseStyles, state) => ({
+                    ...baseStyles,
+                    borderColor: state.isFocused ? '#16272e3d' : '#979CB580',
+                    borderWidth: state.isFocused ? '0px' : '1px',
+                    width: (props.width)? props.width : '100%',
+
+                }),
+            }}
+            theme={(theme) => ({
+                ...theme,
+                colors: {
+                    ...theme.colors,
+                    primary25: '#E0E1E6',
+                    primary75: '#E0E1E6',
+                    primary50: '#E0E1E6',
+                    primary: '#16272e3d',
+                },
+            })}
+            components={{
+                IndicatorSeparator: () => null
+            }}
+            options={props.options} className={(props.className)?props.className:''} onChange={(item) => { setCurrentItem(item); props.onChange(item) }} value={currentItem} />
 
     )
 })

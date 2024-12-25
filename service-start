@@ -1,0 +1,10 @@
+#!/bin/bash  
+
+SERVICE_NAME='dataset-tool-website'
+IMAGE_NAME='innodiskorg/dataset-tool-website:v107'
+echo "(1) build the website"
+npm run build
+echo "(2) run docker-compose"
+sudo docker-compose -f docker-compose-pro.yml up -d
+echo "Operation Complete" 
+

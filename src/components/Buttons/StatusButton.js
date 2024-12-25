@@ -1,9 +1,12 @@
-import React from 'react';
+import React,{useEffect} from 'react';
 import log from "../../utils/console";
+import CustomTooltip from '../Tooltips/CustomTooltip';
+import { Tooltip } from '@mui/material';
 
-const StatusButton = ({ name,onClick }) => {
 
-    // const {name}=props;
+const StatusButton = ({ name, title, onClick }) => {
+
+    
 
     const handleClick = () => {
         onClick();
@@ -27,13 +30,34 @@ const StatusButton = ({ name,onClick }) => {
         )
     }
 
-    if ((name === "stop") || (name === "manual stop")) {
-        return (
-            <button className="my-button-yellow">
-                Stop
-            </button>
-        )
+    if (name==="task-status"){
+
+        if ((title==="stopping")||(title==="preparing")){ 
+            return (
+
+
+                <button className="my-button-yellow" style={{ width: 79 }}>
+                    {title}
+                </button>
+
+            )
+        }else if ((title==="stop")||(title==="error")){
+
+            return (
+                <button className="my-button-red" style={{ width: 79 }}>
+                    {title}
+                </button>
+            )
+        }else{
+            return (
+                <button className="my-button-green" style={{ width: 79 }}>
+                    {title}
+                </button>
+            )
+        }
     }
+
+
 
     if (name === "failed") {
         return (
@@ -43,13 +67,15 @@ const StatusButton = ({ name,onClick }) => {
         )
     }
 
-    if (name === "waiting") {
+    if (name === "train-wait") {
         return (
             <button className="my-button-gray" style={{ width: 79 }}>
-                Waiting
+                Wait
             </button>
         )
     }
+
+
 
     if (name === "train-active") {
         return (
@@ -59,9 +85,30 @@ const StatusButton = ({ name,onClick }) => {
         )
     }
 
+    if (name === "train-failed") {
+        return (
+
+            <>
+                {
+                    (title) ?
+                        <CustomTooltip title={title}>
+                            <button className="my-button-red" style={{ width: 79 }}>
+                                Failure
+                            </button>
+                        </CustomTooltip>
+                        :
+                        <button className="my-button-red" style={{ width: 79 }}>
+                            Failure
+                        </button>
+
+                }
+            </>
+        )
+    }
+
     if (name === "train-inactive") {
         return (
-            <button className="my-button-gray" style={{ width: 79 }}>
+            <button className="my-button-gray" style={{ width: 79 }} onClick={handleClick}>
                 Train
             </button>
         )
@@ -69,8 +116,24 @@ const StatusButton = ({ name,onClick }) => {
 
     if (name === "evaluate-active") {
         return (
-            <button className="my-button-green" style={{ width: 79 }}>
+            <button className="my-button-green" style={{ width: 79 }} onClick={handleClick}>
                 Evaluate
+            </button>
+        )
+    }
+
+    if (name === "evaluate-running") {
+        return (
+            <button className="my-button-yellow" style={{ width: 79 }}>
+                Evaluating
+            </button>
+        )
+    }
+
+    if (name === "inference-running") {
+        return (
+            <button className="my-button-yellow" style={{ width: 79 }}>
+                Inferencing
             </button>
         )
     }
@@ -99,18 +162,74 @@ const StatusButton = ({ name,onClick }) => {
         )
     }
 
-
-
-    if (name.toLowerCase().indexOf('err') >= 0) {
+    if (name === "export-running") {
         return (
-            <div className="my-tooltip-container" data-tooltip-id="my-tooltip-id" data-tooltip-content={name.replaceAll("_", " ")}>
-                <button className="my-button-error">
-                    Error
-                </button>
-
-            </div>
+            <button className="my-button-yellow" style={{ width: 79 }}>
+                Exporting
+            </button>
         )
     }
+
+    if (name === "export-active") {
+        return (
+            <button className="my-button-green" style={{ width: 79 }} onClick={handleClick}>
+                Export
+            </button>
+        )
+    }
+
+    if (name === "export-inactive") {
+        return (
+            <button className="my-button-gray" style={{ width: 79 }} onClick={handleClick}>
+                Export
+            </button>
+        )
+    }
+
+
+
+
+
+    if (name === "running") {
+        return (
+            <button className="my-button-run" style={{ width: 100 }}>
+                Running
+            </button>
+        )
+    }
+
+    if (name === "wait") {
+        return (
+            <button className="my-button-red" style={{ width: 100 }}>
+                Stop
+            </button>
+        )
+    }
+
+    if (name === "stop") {
+        return (
+            <button className="my-button-yellow" style={{ width: 100 }}>
+                Stopping
+            </button>
+        )
+    }
+
+    if (name === "prepare") {
+        return (
+            <button className="my-button-yellow" style={{ width: 100 }}>
+                Prepare
+            </button>
+        )
+    }
+
+    if (name === "error") {
+        return (
+            <button className="my-button-red" style={{ width: 100 }}>
+                Error
+            </button>
+        )
+    }
+
 
 
 

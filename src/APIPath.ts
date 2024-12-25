@@ -36,8 +36,19 @@ const nginx_proxy = '/inmfft';
 const apiv1 = '/api/v1';
 const dataConvert_server = '/dataConvert';
 const restfulv1 = '/rest/v1';
-
 const trainv1 = 'v1';
+
+
+//const infer_nginx_proxy = '/inmffr';
+const infer_nginx_proxy = '/ivit_aoi_r';
+const infer_api_version = '/api/v1';
+const infer_reset_version = '/rest/v1';
+const infer_server = '/inference_backend';
+
+
+
+
+
 
 // ProjectPage
 export const datasetToolProjectAPI = `${localhost}${port}${nginx_proxy}${apiv1}/datasetToolProject`;
@@ -98,11 +109,18 @@ export const downloadDatasetAPI = (export_uuid: string) =>
 export const generateZipWs = (project_uuid: string) =>
   `${wsLocalhost}${port}${nginx_proxy}${apiv1}/projectStatus/generateZip?project_uuid=${project_uuid}`;
 
+
+export const genZipDatasetAPI = `${localhost}${port}${nginx_proxy}${apiv1}/dataset/generation`;
+
+export const dsImageInsertAPI = `${localhost}${port}${nginx_proxy}${dataConvert_server}${restfulv1}/dataset/image/insert`;
+
 export const taoWorkspaceAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace`;
 
 export const taoQuickTrainAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/info`;
 
 export const taoStartTrainAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train`;
+
+export const taoStartTrainSettingAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train/setting`;
 
 export const taoTrainStatusWS = `${wsLocalhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train/container`; 
 
@@ -112,4 +130,43 @@ export const taoInferenceAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${tra
 
 export const taoExportAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/export`;
 
+export const taoPreTrainModelAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/model/nvidia`;
+
 export const taoDownloadAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/export/download`;
+
+export const taoUploadYamlAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/info/spec/upload`;
+
+export const taoDownloadYamlAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/info/spec/download`;
+
+export const taoTrainInfoAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train/setting`;
+
+export const taoTrainInfoIdAPI = `${localhost}${port}${nginx_proxy}/tao/rest/${trainv1}/modelWorkspace/train/setting/id`;
+
+export const taoMachineAPI = `${localhost}${port}${nginx_proxy}${dataConvert_server}/rest/${trainv1}/machine`;
+
+///inmfft/tao/rest/v1/modelWorkspace/info/spec/download?t
+
+
+export const inferHealthAPI = `/health`;
+
+export const inferInferenceAPI = `${infer_nginx_proxy}${infer_server}${infer_reset_version}/inferenceModel`;
+
+export const inferUploadAPI = `${infer_nginx_proxy}${infer_server}${infer_reset_version}/inferenceModel/upload`;
+
+export const inferInfoAPI = `${infer_nginx_proxy}${infer_server}${infer_reset_version}/inferenceModel/info`;
+
+export const inferTaskAPI = `${infer_nginx_proxy}${infer_server}${infer_reset_version}/task`;
+
+export const inferTaskStartAPI = `${infer_nginx_proxy}${infer_server}${infer_reset_version}/task/inference/start`;
+
+export const inferTaskStopAPI = `${infer_nginx_proxy}${infer_server}${infer_reset_version}/task/inference/stop`;
+
+export const inferAllSupportPanelAPI = `${infer_nginx_proxy}${infer_server}${infer_api_version}/allSuportPanel`;
+
+export const inferHeartBeatAPI = `${infer_nginx_proxy}${infer_server}${infer_api_version}/heartBeat`;
+
+export const inferTaskInfoAPI = `${infer_nginx_proxy}${infer_server}${infer_api_version}/taskInfo`;
+
+export const inferLogAPI = `${infer_nginx_proxy}${infer_server}${infer_api_version}/logs`;
+
+

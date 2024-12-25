@@ -12,6 +12,22 @@ export default class WebSocketUtility {
                 this.messageCallback(event.data);
             }
         };
+        this.websocket.onopen = (event) => {
+            console.log('websocket opened');
+            //this.messageCallback = 'websocket opened';
+        };
+        this.websocket.onclose = (event) => {
+            // setTimeout(function () {
+            //     this.websocket.start();
+            // }, 1000);
+
+            console.log('websocket closed');
+            //this.messageCallback = 'websocket closed';
+            //this.start();
+            // setTimeout(() => {
+            //     this.start();
+            // }, 3000);
+        };
     }
 
     stop() {

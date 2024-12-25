@@ -13,7 +13,7 @@ left: 0;
 width: 36px;
 height: 20px;
 border-radius: 15px;
-background: #0000001F;
+background: #FF359A;
 cursor: pointer;
 &::after {
 content: "";
@@ -35,7 +35,7 @@ border-radius: 15px;
 width: 42px;
 height: 26px;
 &:checked + ${CheckBoxLabel} {
-background: #34C756;
+background: #21D59B;
 &::after {
     content: "";
     display: block;
@@ -84,8 +84,15 @@ const ToggleButton = forwardRef((props, ref) => {
 
     useEffect(() => {
 
-        if (props.status === 'run') setDisabled(false);
-        if (props.status === 'stop') setDisabled(false);
+        if (props.status === 'run') {
+            setDisabled(false);
+            setIsChecked(true);
+
+        };
+        if (props.status === 'stop') {
+            setDisabled(false);
+            setIsChecked(false);
+        };
         if (props.status.toLowerCase().indexOf('error') >= 0) {
             setDisabled(false);
             setIsChecked(false);
@@ -95,11 +102,13 @@ const ToggleButton = forwardRef((props, ref) => {
 
     return (
 
-        <div>
-            <CheckBoxWrapper>
-                <CheckBox id={`checkbox_${props.id}`} type="checkbox" checked={isChecked} onChange={handleCheckboxChange} />
-                <CheckBoxLabel htmlFor={`checkbox_${props.id}`} />
-            </CheckBoxWrapper>
+        <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', left:(props.left)?props.left:0, top: (props.top)?props.top:0 }}>
+                <CheckBoxWrapper>
+                    <CheckBox id={`checkbox_${props.id}`} type="checkbox" checked={isChecked} onChange={handleCheckboxChange} />
+                    <CheckBoxLabel htmlFor={`checkbox_${props.id}`} />
+                </CheckBoxWrapper>
+            </div>
         </div>
     );
 });

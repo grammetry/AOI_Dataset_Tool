@@ -1,0 +1,73 @@
+results_dir: /results
+encryption_key: nvidia_tao
+model:
+  model_type: Siamese_3
+  model_backbone: custom
+  embedding_vectors: 5
+  margin: 1.5
+dataset:
+  train_dataset:
+    csv_path: /data/dataset_convert/train.csv
+    images_dir: /data/train/
+  validation_dataset:
+    csv_path: /data/dataset_convert/val.csv
+    images_dir: /data/val/
+  test_dataset:
+    csv_path: /data/dataset_convert/val.csv
+    images_dir: /data/val/
+  infer_dataset:
+    csv_path: /data/dataset_convert/val.csv
+    images_dir: /data/val/
+  image_ext: .jpg
+  batch_size: 16
+  workers: 8
+  fpratio_sampling: 0.02
+  num_input: 1
+  input_map: null
+  concat_type: linear
+  grid_map:
+    x: 2
+    y: 2
+  output_shape:
+    - 256
+    - 256
+  augmentation_config:
+    rgb_input_mean: [0.485, 0.456, 0.406]
+    rgb_input_std: [0.229, 0.224, 0.225]
+train:
+  pretrained_model_path: /pretrained/optical_inspection_vtrainable_v1.0/oi_model.pth
+  optim:
+    type: Adam
+    lr: 0.0005
+    momentum: 0.9        # SGD only
+    weight_decay: 0.0001 # SGD only
+  loss: contrastive
+  num_epochs: 200
+  checkpoint_interval: 20
+  validation_interval: ${train.checkpoint_interval}
+  results_dir: "${results_dir}/train"
+  tensorboard:
+    enabled: True
+evaluate:
+  gpu_id: 0
+  checkpoint: "${results_dir}/train/oi_model.pth"
+  results_dir: "${results_dir}/evaluate"
+export:
+  checkpoint: "${results_dir}/train/oi_model.pth"
+  results_dir: "${results_dir}/export"
+  onnx_file: "${export.results_dir}/oi_model.onnx"
+  batch_size: 1
+  input_height: 256
+  input_width: 256
+inference:
+  gpu_id: 0
+  checkpoint: "${results_dir}/train/oi_model.pth"
+  results_dir: "${results_dir}/inference"
+  trt_engine: "${gen_trt_engine.trt_engine}"
+  batch_size: ${dataset.batch_size}
+gen_trt_engine:
+  results_dir: "${results_dir}/gen_trt_engine"
+  onnx_file: "${export.onnx_file}"
+  trt_engine: "${gen_trt_engine.results_dir}/oi_model.trt"
+  batch_size: ${dataset.batch_size}
+  
